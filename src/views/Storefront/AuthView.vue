@@ -18,8 +18,8 @@
           <div class="banner-text">
             <h2>{{ isLoginMode ? 'Bem-vindo de volta!' : 'Junte-se a nós!' }}</h2>
             <p>{{ isLoginMode 
-              ? 'Acesse sua conta para gerenciar seus pedidos, ver preços exclusivos e acompanhar suas entregas.' 
-              : 'Crie sua conta em segundos e tenha acesso ao maior catálogo de peças diesel do Brasil.' 
+              ? 'Acesse sua conta para gerenciar seus pedidos e ver preços exclusivos.' 
+              : 'Crie sua conta e tenha acesso ao maior catálogo de peças diesel.' 
             }}</p>
           </div>
           
@@ -35,20 +35,40 @@
           <p>{{ isLoginMode ? 'Insira seus dados para continuar' : 'Preencha os dados abaixo' }}</p>
         </div>
 
+        <button class="btn-social google-btn" @click="handleGoogleLogin">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Continuar com o Google
+        </button>
+
+        <div class="divider">
+          <span>ou continue com</span>
+        </div>
+
         <div v-if="authStore.error" class="error-alert">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           {{ authStore.error }}
         </div>
 
         <form @submit.prevent="handleSubmit" class="auth-form">
-          <div class="input-group" v-if="!isLoginMode">
-            <label for="name">Nome Completo</label>
-            <input type="text" id="name" v-model="formData.name" placeholder="Ex: João da Silva" :required="!isLoginMode">
+          <div class="input-row" v-if="!isLoginMode">
+            <div class="input-group">
+              <label for="name">Nome Completo</label>
+              <input type="text" id="name" v-model="formData.name" placeholder="Ex: João Silva" :required="!isLoginMode">
+            </div>
+            <div class="input-group">
+              <label for="username">Nome de Usuário</label>
+              <input type="text" id="username" v-model="formData.username" placeholder="joaosilva" :required="!isLoginMode">
+            </div>
           </div>
 
-          <div class="input-group">
+          <div class="input-group" v-if="!isLoginMode">
             <label for="email">E-mail</label>
             <input type="email" id="email" v-model="formData.email" placeholder="seu@email.com" required>
+          </div>
+
+          <div class="input-group" v-if="isLoginMode">
+            <label for="loginIdentifier">Nome de Usuário ou E-mail</label>
+            <input type="text" id="loginIdentifier" v-model="formData.username" placeholder="joaosilva ou seu@email.com" required>
           </div>
 
           <div class="input-group">
@@ -92,6 +112,7 @@ const isLoginMode = ref(true)
 
 const formData = reactive({
   name: '',
+  username: '',
   email: '',
   password: ''
 })
@@ -100,16 +121,22 @@ const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value
   authStore.error = null
   formData.name = ''
+  formData.username = ''
+  formData.email = ''
   formData.password = ''
+}
+
+const handleGoogleLogin = () => {
+  alert('A integração completa com o Google requer configuração no backend (OAuth2).')
 }
 
 const handleSubmit = async () => {
   let success = false
   
   if (isLoginMode.value) {
-    success = await authStore.login(formData.email, formData.password)
+    success = await authStore.login(formData.username, formData.password)
   } else {
-    success = await authStore.register(formData.name, formData.email, formData.password)
+    success = await authStore.register(formData.name, formData.username, formData.email, formData.password)
   }
 
   if (success) {
@@ -129,7 +156,7 @@ const handleSubmit = async () => {
   align-items: center;
   justify-content: center;
   background-color: var(--bg-color);
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
 }
 
 .auth-card {
@@ -147,14 +174,14 @@ const handleSubmit = async () => {
 @media (min-width: 992px) {
   .auth-card {
     flex-direction: row;
-    height: 600px;
+    min-height: 650px;
   }
 }
 
 .auth-banner {
   background: linear-gradient(135deg, #00361c 0%, #008f4c 100%);
   color: #ffffff;
-  padding: 3rem;
+  padding: 2.5rem;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -164,6 +191,7 @@ const handleSubmit = async () => {
 @media (min-width: 992px) {
   .auth-banner {
     width: 45%;
+    padding: 3.5rem;
   }
 }
 
@@ -193,7 +221,13 @@ const handleSubmit = async () => {
   gap: 0.75rem;
   text-decoration: none;
   color: #ffffff;
-  margin-bottom: auto;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 992px) {
+  .banner-logo {
+    margin-bottom: auto;
+  }
 }
 
 .banner-logo svg {
@@ -220,24 +254,36 @@ const handleSubmit = async () => {
 }
 
 .banner-text {
-  margin: 3rem 0;
+  margin: 1.5rem 0;
+}
+
+@media (min-width: 992px) {
+  .banner-text {
+    margin: 3rem 0;
+  }
 }
 
 .banner-text h2 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 800;
   margin: 0 0 1rem 0;
   line-height: 1.2;
 }
 
+@media (min-width: 992px) {
+  .banner-text h2 {
+    font-size: 2.5rem;
+  }
+}
+
 .banner-text p {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1.6;
   opacity: 0.9;
 }
 
 .banner-footer {
-  margin-top: auto;
+  margin-top: 1.5rem;
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -245,26 +291,33 @@ const handleSubmit = async () => {
   opacity: 0.7;
 }
 
+@media (min-width: 992px) {
+  .banner-footer {
+    margin-top: auto;
+  }
+}
+
 .auth-form-container {
-  padding: 3rem;
+  padding: 2.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  flex-grow: 1;
 }
 
 @media (min-width: 992px) {
   .auth-form-container {
     width: 55%;
-    padding: 4rem;
+    padding: 3.5rem 4rem;
   }
 }
 
 .form-header {
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 }
 
 .form-header h2 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   color: var(--text-main);
   margin: 0 0 0.5rem 0;
   font-weight: 800;
@@ -272,13 +325,62 @@ const handleSubmit = async () => {
 
 .form-header p {
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 0.95rem;
   margin: 0;
 }
 
+.btn-social {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background-color: var(--surface-color);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 1.5rem;
+}
+
+.btn-social:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--text-muted);
+}
+
+.btn-social svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.divider span {
+  padding: 0 1rem;
+}
+
 .error-alert {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   color: #ef4444;
   padding: 1rem;
   border-radius: 0.75rem;
@@ -299,7 +401,22 @@ const handleSubmit = async () => {
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+}
+
+.input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .input-row {
+    flex-direction: row;
+  }
+  .input-row .input-group {
+    flex: 1;
+  }
 }
 
 .input-group {
@@ -315,13 +432,13 @@ const handleSubmit = async () => {
 }
 
 .input-group label {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-main);
 }
 
 .forgot-password {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--primary-light);
   text-decoration: none;
   font-weight: 600;
@@ -333,10 +450,10 @@ const handleSubmit = async () => {
 }
 
 .input-group input {
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1.25rem;
   border: 1px solid var(--border-color);
   border-radius: 0.75rem;
-  font-size: 1rem;
+  font-size: 0.95rem;
   background-color: var(--bg-color);
   color: var(--text-main);
   transition: all 0.2s ease;
@@ -352,9 +469,9 @@ const handleSubmit = async () => {
   background-color: var(--primary-light);
   color: #ffffff;
   border: none;
-  padding: 1.125rem;
+  padding: 1rem;
   border-radius: 0.75rem;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -362,7 +479,7 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 54px;
+  min-height: 50px;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -377,8 +494,8 @@ const handleSubmit = async () => {
 }
 
 .spinner {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #ffffff;
@@ -392,7 +509,7 @@ const handleSubmit = async () => {
 .form-footer {
   margin-top: 2rem;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
 }
 
@@ -401,7 +518,7 @@ const handleSubmit = async () => {
   border: none;
   color: var(--primary-light);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
   padding: 0;
   margin-left: 0.25rem;

@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) => !!state.token,
     isSuperuser: (state) => state.user?.is_superuser || false,
-    userName: (state) => state.user?.first_name || state.user?.email || ''
+    userName: (state) => state.user?.first_name || state.user?.username || ''
   },
   actions: {
     initAuth() {
@@ -20,31 +20,31 @@ export const useAuthStore = defineStore('auth', {
         this.fetchUser()
       }
     },
-    async login(email, password) {
+    async login(username, password) {
       this.loading = true
       this.error = null
       try {
-        const response = await api.post('/auth/token/', { username: email, password })
+        const response = await api.post('/auth/token/', { username, password })
         this.token = response.data.access
         localStorage.setItem('token', this.token)
         api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
         await this.fetchUser()
         return true
       } catch (err) {
-        this.error = 'E-mail ou senha inválidos.'
+        this.error = 'Credenciais inválidas. Verifique seu usuário e senha.'
         return false
       } finally {
         this.loading = false
       }
     },
-    async register(name, email, password) {
+    async register(name, username, email, password) {
       this.loading = true
       this.error = null
       try {
-        await api.post('/catalog/auth/register/', { first_name: name, email, password })
-        return await this.login(email, password)
+        await api.post('/catalog/auth/register/', { first_name: name, username, email, password })
+        return await this.login(username, password)
       } catch (err) {
-        this.error = 'Erro ao criar conta. O e-mail pode já estar em uso.'
+        this.error = 'Erro ao criar conta. O usuário ou e-mail já estão em uso.'
         return false
       } finally {
         this.loading = false
