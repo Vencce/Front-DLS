@@ -1,407 +1,338 @@
 <template>
-  <div class="order-management-page">
-    <div class="page-header">
-      <h1 class="page-title">Gestão de Pedidos</h1>
-      <button class="btn-secondary">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-        Exportar Relatório
-      </button>
+  <div class="admin-orders-page">
+    <div class="page-header" v-animate>
+      <div>
+        <h1 class="page-title">Gestão de Pedidos</h1>
+        <p class="page-subtitle">Acompanhe as vendas, altere status e informe rastreios.</p>
+      </div>
     </div>
 
-    <div class="filter-bar">
-      <div class="search-input">
+    <div class="filters-card" v-animate>
+      <div class="search-bar">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input type="text" placeholder="Buscar por número do pedido ou cliente...">
+        <input type="text" v-model="searchQuery" placeholder="Buscar por número do pedido ou nome do cliente...">
       </div>
-      <div class="filter-actions">
-        <select class="filter-select">
-          <option value="">Status de Pagamento</option>
-          <option value="pago">Aprovado</option>
-          <option value="pendente">Aguardando PIX</option>
-          <option value="recusado">Recusado</option>
-        </select>
-        <select class="filter-select">
-          <option value="">Status Logístico</option>
-          <option value="preparacao">Em Preparação</option>
-          <option value="transporte">Em Transporte</option>
-          <option value="entregue">Entregue</option>
-        </select>
+      <div class="status-filters">
+        <button class="status-tab" :class="{ active: filterStatus === '' }" @click="filterStatus = ''">Todos</button>
+        <button class="status-tab" :class="{ active: filterStatus === 'pending' }" @click="filterStatus = 'pending'">Aguardando Pagamento</button>
+        <button class="status-tab" :class="{ active: filterStatus === 'paid' }" @click="filterStatus = 'paid'">Pagos</button>
+        <button class="status-tab" :class="{ active: filterStatus === 'shipped' }" @click="filterStatus = 'shipped'">Enviados</button>
+        <button class="status-tab" :class="{ active: filterStatus === 'delivered' }" @click="filterStatus = 'delivered'">Entregues</button>
       </div>
     </div>
 
-    <div class="panel">
+    <div class="table-card" v-animate>
       <div class="table-responsive">
-        <table class="admin-table">
+        <table class="data-table">
           <thead>
             <tr>
               <th>Pedido</th>
-              <th>Data</th>
               <th>Cliente</th>
-              <th>Total</th>
-              <th>Pagamento</th>
+              <th>Data</th>
               <th>Status</th>
+              <th>Total</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>#10046</strong></td>
-              <td>18/05/2026 14:30</td>
-              <td>
-                <div class="customer-info">
-                  <span class="customer-name">Carlos Souza</span>
-                  <span class="customer-doc">CPF: 123.456.789-00</span>
-                </div>
-              </td>
-              <td>R$ 1.450,00</td>
-              <td><span class="pay-method pix">PIX</span></td>
-              <td><span class="status-badge status-pending">Aguardando Pagamento</span></td>
-              <td>
-                <button class="action-btn">Detalhes</button>
+            <tr v-if="filteredOrders.length === 0">
+              <td colspan="6" class="empty-state">
+                Nenhum pedido encontrado.
               </td>
             </tr>
-            <tr>
-              <td><strong>#10045</strong></td>
-              <td>15/05/2026 09:15</td>
+            <tr v-for="order in filteredOrders" :key="order.id">
               <td>
-                <div class="customer-info">
-                  <span class="customer-name">Viação Estrela LTDA</span>
-                  <span class="customer-doc">CNPJ: 12.345.678/0001-90</span>
+                <span class="order-id">#{{ order.id }}</span>
+              </td>
+              <td>
+                <div class="client-info">
+                  <span class="name">{{ order.customer_name }}</span>
+                  <span class="email">{{ order.customer_email }}</span>
                 </div>
               </td>
-              <td>R$ 1.700,00</td>
-              <td><span class="pay-method card">Cartão (Assimilar)</span></td>
-              <td><span class="status-badge status-paid">Faturado</span></td>
+              <td>{{ order.date }}</td>
               <td>
-                <button class="action-btn">Detalhes</button>
+                <span class="status-badge" :class="getStatusClass(order.status)">
+                  {{ getStatusText(order.status) }}
+                </span>
               </td>
-            </tr>
-            <tr>
-              <td><strong>#10044</strong></td>
-              <td>14/05/2026 16:45</td>
+              <td class="price-cell">{{ formatPrice(order.total) }}</td>
               <td>
-                <div class="customer-info">
-                  <span class="customer-name">Marcos Silva</span>
-                  <span class="customer-doc">CPF: 987.654.321-11</span>
-                </div>
-              </td>
-              <td>R$ 890,00</td>
-              <td><span class="pay-method card">Cartão (Sicred)</span></td>
-              <td><span class="status-badge status-transit">Em Transporte</span></td>
-              <td>
-                <button class="action-btn">Detalhes</button>
-              </td>
-            </tr>
-            <tr>
-              <td><strong>#10043</strong></td>
-              <td>12/05/2026 11:20</td>
-              <td>
-                <div class="customer-info">
-                  <span class="customer-name">Transportes Log</span>
-                  <span class="customer-doc">CNPJ: 98.765.432/0001-10</span>
-                </div>
-              </td>
-              <td>R$ 4.200,00</td>
-              <td><span class="pay-method pix">PIX</span></td>
-              <td><span class="status-badge status-delivered">Entregue</span></td>
-              <td>
-                <button class="action-btn">Detalhes</button>
+                <button class="btn-action">Gerenciar</button>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-      
-      <div class="pagination">
-        <span class="page-info">Mostrando 1 a 4 de 1.250 pedidos</span>
-        <div class="page-controls">
-          <button class="page-btn" disabled>Anterior</button>
-          <button class="page-btn active">1</button>
-          <button class="page-btn">2</button>
-          <button class="page-btn">3</button>
-          <button class="page-btn">Próxima</button>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
+
+const searchQuery = ref('')
+const filterStatus = ref('')
+
+const formatPrice = (value) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+const mockOrders = ref([
+  { id: '10425', customer_name: 'Marcos Roberto', customer_email: 'marcos@email.com', date: 'Hoje, 10:45', status: 'paid', total: 2450.00 },
+  { id: '10424', customer_name: 'Auto Mecânica Silva', customer_email: 'contato@mecanicasilva.com', date: 'Hoje, 09:12', status: 'pending', total: 890.00 },
+  { id: '10423', customer_name: 'Transportes LogSul', customer_email: 'compras@logsul.com.br', date: 'Ontem, 16:30', status: 'paid', total: 5120.00 },
+  { id: '10422', customer_name: 'João Paulo Dias', customer_email: 'joaopaulo@email.com', date: 'Ontem, 14:20', status: 'shipped', total: 340.00 },
+  { id: '10421', customer_name: 'Viação Norte', customer_email: 'financeiro@viacaonorte.com', date: '12 Mai, 11:15', status: 'delivered', total: 1250.00 }
+])
+
+const filteredOrders = computed(() => {
+  let result = mockOrders.value
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter(o => 
+      o.id.toLowerCase().includes(q) || 
+      o.customer_name.toLowerCase().includes(q)
+    )
+  }
+
+  if (filterStatus.value) {
+    result = result.filter(o => o.status === filterStatus.value)
+  }
+
+  return result
+})
+
+const getStatusClass = (status) => {
+  const map = {
+    pending: 'status-pending',
+    paid: 'status-paid',
+    shipped: 'status-shipped',
+    delivered: 'status-delivered'
+  }
+  return map[status] || ''
+}
+
+const getStatusText = (status) => {
+  const map = {
+    pending: 'Aguardando Pagamento',
+    paid: 'Pago',
+    shipped: 'Enviado',
+    delivered: 'Entregue'
+  }
+  return map[status] || status
+}
 </script>
 
 <style scoped>
-.order-management-page {
+.admin-orders-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .page-title {
-  font-size: 1.5rem;
-  color: #111827;
+  font-size: 2rem;
+  color: var(--text-main);
+  margin: 0 0 0.25rem 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
   margin: 0;
+  font-weight: 500;
 }
 
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #ffffff;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-  background-color: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.btn-secondary svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.filter-bar {
+.filters-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  background-color: #ffffff;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  gap: 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
-@media (min-width: 768px) {
-  .filter-bar {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-}
-
-.search-input {
+.search-bar {
   position: relative;
-  flex-grow: 1;
-  max-width: 400px;
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
-.search-input svg {
+.search-bar svg {
   position: absolute;
   left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
   width: 1.25rem;
   height: 1.25rem;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
-.search-input input {
+.search-bar input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  padding: 1rem 1rem 1rem 3rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-size: 0.95rem;
   outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
-.search-input input:focus {
-  border-color: #eab308;
+.search-bar input:focus {
+  border-color: var(--primary-light);
 }
 
-.filter-actions {
+.status-filters {
   display: flex;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.filter-select {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  outline: none;
-  background-color: #ffffff;
+.status-tab {
+  background-color: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.panel {
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+.status-tab:hover {
+  border-color: var(--text-main);
+  color: var(--text-main);
+}
+
+.status-tab.active {
+  background-color: var(--primary-light);
+  border-color: var(--primary-light);
+  color: #ffffff;
+}
+
+.table-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
 .table-responsive {
   overflow-x: auto;
+  width: 100%;
 }
 
-.admin-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  min-width: 800px;
 }
 
-.admin-table th {
-  background-color: #f9fafb;
+.data-table th {
+  background-color: var(--surface-hover);
   padding: 1rem 1.5rem;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.admin-table td {
-  padding: 1rem 1.5rem;
-  font-size: 0.875rem;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+.data-table td {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
 
-.admin-table tr:hover td {
-  background-color: #f9fafb;
+.data-table tr:hover td {
+  background-color: var(--surface-hover);
 }
 
-.customer-info {
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem !important;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.order-id {
+  font-weight: 800;
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.client-info {
   display: flex;
   flex-direction: column;
 }
 
-.customer-name {
-  font-weight: 600;
-  color: #111827;
-}
-
-.customer-doc {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.pay-method {
-  font-size: 0.75rem;
+.client-info .name {
   font-weight: 700;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  display: inline-block;
+  color: var(--text-main);
+  font-size: 0.95rem;
 }
 
-.pay-method.pix {
-  background-color: #ccfbf1;
-  color: #0f766e;
-}
-
-.pay-method.card {
-  background-color: #f3f4f6;
-  color: #4b5563;
+.client-info .email {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   display: inline-block;
   white-space: nowrap;
 }
 
-.status-pending {
-  background-color: #fef3c7;
-  color: #92400e;
+.status-paid { background-color: rgba(0, 168, 89, 0.15); color: var(--primary-light); }
+.status-pending { background-color: rgba(249, 115, 22, 0.15); color: #f97316; }
+.status-shipped { background-color: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.status-delivered { background-color: rgba(168, 85, 247, 0.15); color: #a855f7; }
+
+.price-cell {
+  font-weight: 800;
+  color: var(--primary-dark);
 }
 
-.status-paid {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.status-transit {
-  background-color: #f3e8ff;
-  color: #6b21a8;
-}
-
-.status-delivered {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.action-btn {
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+.btn-action {
+  background-color: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
-.action-btn:hover {
-  background-color: #e5e7eb;
-}
-
-.pagination {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  background-color: #ffffff;
-  gap: 1rem;
-}
-
-@media (min-width: 640px) {
-  .pagination {
-    flex-direction: row;
-  }
-}
-
-.page-info {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.page-controls {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.page-btn {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  background-color: #ffffff;
-  color: #374151;
-  font-size: 0.875rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.page-btn:hover:not(:disabled) {
-  background-color: #f9fafb;
-}
-
-.page-btn.active {
-  background-color: #111827;
+.btn-action:hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary-light);
   color: #ffffff;
-  border-color: #111827;
-}
-
-.page-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 </style>

@@ -3,12 +3,12 @@
     <section class="hero-section" v-animate>
       <div class="container hero-grid">
         <div class="hero-text">
-          <span class="hero-badge">Especialistas em Linha Pesada</span>
-          <h1>Alta Performance para o seu Motor Diesel</h1>
-          <p>Encontre as melhores peças com qualidade original e garantia de fábrica. Compre agora e não deixe sua frota parar.</p>
+          <span class="hero-badge">Peças Originais Usadas</span>
+          <h1>Alta Performance com o Melhor Custo-Benefício</h1>
+          <p>Especialistas em peças usadas para o seu motor diesel. Todos os produtos possuem Nota Fiscal, embalagem super reforçada e garantia de 3 meses protegida por lacre de segurança.</p>
           <div class="hero-actions">
             <router-link to="/catalogo" class="btn-primary">Ver Catálogo Completo</router-link>
-            <a href="#destaques" class="btn-secondary">Nossas Ofertas</a>
+            <a href="#diretrizes" class="btn-secondary">Como Comprar</a>
           </div>
         </div>
         
@@ -51,17 +51,8 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
           </div>
           <div class="benefit-text">
-            <h3>Pagamento Facilitado</h3>
-            <p>Em até 12x no cartão ou 5% OFF no PIX</p>
-          </div>
-        </div>
-        <div class="benefit-card">
-          <div class="icon-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-          </div>
-          <div class="benefit-text">
-            <h3>Estoque Garantido</h3>
-            <p>Amplo catálogo a pronta entrega</p>
+            <h3>Desconto à Vista</h3>
+            <p>5% de desconto para compras diretas no Depósito ou PIX</p>
           </div>
         </div>
         <div class="benefit-card">
@@ -69,63 +60,79 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <div class="benefit-text">
-            <h3>Qualidade Original</h3>
-            <p>Trabalhamos com as melhores marcas</p>
+            <h3>Garantia de 3 Meses</h3>
+            <p>Proteção garantida de 90 dias através de nossos lacres de segurança</p>
           </div>
         </div>
         <div class="benefit-card">
           <div class="icon-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           </div>
           <div class="benefit-text">
-            <h3>Envio Rápido</h3>
-            <p>Despachamos para todo o Brasil</p>
+            <h3>Procedência Comprovada</h3>
+            <p>Todos os nossos produtos usados acompanham Nota Fiscal</p>
+          </div>
+        </div>
+        <div class="benefit-card">
+          <div class="icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+          </div>
+          <div class="benefit-text">
+            <h3>Embalagem Segura</h3>
+            <p>Plástico bolha, lona, papelão e caixas de madeira para itens frágeis</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="categories-section container" v-animate>
+    <section id="diretrizes" class="info-section container" v-animate>
       <div class="section-header">
-        <h2>Busque por Categoria</h2>
-        <router-link to="/catalogo" class="view-all">Ver todas as categorias &rarr;</router-link>
+        <h2>Regras e Dúvidas Frequentes</h2>
+        <span class="view-all">Transparência DLS Peças</span>
       </div>
-      <div class="categories-grid">
-        <router-link to="/catalogo?search=injecao" class="category-card">
-          <div class="category-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-number">1</div>
+          <div class="info-content">
+            <h3>Condição dos Produtos</h3>
+            <p>Trabalhamos exclusivamente com peças usadas. Embora não possuamos a quilometragem exata das peças, informamos o ano e modelo do veículo doador. Se o anúncio indicar "Avaria" ou "Com Detalhe", verifique as fotos para conferir o defeito.</p>
           </div>
-          <h3>Sistemas de Injeção</h3>
-          <p>Bicos, Bombas e Sensores</p>
-        </router-link>
-        <router-link to="/catalogo?search=motor" class="category-card">
-          <div class="category-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        </div>
+        <div class="info-card">
+          <div class="info-number">2</div>
+          <div class="info-content">
+            <h3>Verifique a Compatibilidade</h3>
+            <p>Antes de efetuar a compra, compare as fotos do anúncio e, principalmente, o código original da peça (OEM). Recomendamos mostrar o anúncio ao seu mecânico de confiança para garantir que sirva no seu veículo.</p>
           </div>
-          <h3>Componentes de Motor</h3>
-          <p>Pistões, Anéis e Bronzinas</p>
-        </router-link>
-        <router-link to="/catalogo?search=filtros" class="category-card">
-          <div class="category-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+        </div>
+        <div class="info-card">
+          <div class="info-number">3</div>
+          <div class="info-content">
+            <h3>Lacres e Garantia</h3>
+            <p>Oferecemos garantia de 3 meses. Para que ela seja válida, todos os produtos são enviados com lacres de segurança exclusivos. A remoção ou rompimento deste lacre antes do prazo anula a garantia.</p>
           </div>
-          <h3>Filtros</h3>
-          <p>Ar, Óleo e Combustível</p>
-        </router-link>
-        <router-link to="/catalogo?search=eletrica" class="category-card">
-          <div class="category-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>
+        </div>
+        <div class="info-card">
+          <div class="info-number">4</div>
+          <div class="info-content">
+            <h3>Instalação Profissional</h3>
+            <p>A instalação não deve ser feita por qualquer pessoa. Recomendamos fortemente que seja realizada por profissionais especializados do ramo para evitar danos à vida útil da peça e ao seu veículo.</p>
           </div>
-          <h3>Elétrica</h3>
-          <p>Módulos, Chicotes e Relés</p>
-        </router-link>
+        </div>
+        <div class="info-card">
+          <div class="info-number">5</div>
+          <div class="info-content">
+            <h3>Prazos e Frete</h3>
+            <p>Os envios são feitos estritamente dentro do prazo estabelecido. Para fretes fora do cálculo automático, utilize o campo de perguntas. Em caso de devolução ou arrependimento, por favor, contate o vendedor antes de abrir uma reclamação.</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <section id="destaques" class="products-section container" v-animate>
       <div class="section-header">
         <h2>Destaques da Loja</h2>
-        <router-link to="/catalogo" class="view-all">Ver todas as ofertas &rarr;</router-link>
+        <router-link to="/catalogo" class="view-all">Ver todas as peças &rarr;</router-link>
       </div>
       
       <div v-if="productStore.loading" class="loading-state">
@@ -148,19 +155,6 @@
             <button @click="goToProduct(product.id)" class="add-to-cart-btn">Ver Detalhes</button>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="newsletter-section container" v-animate>
-      <div class="newsletter-content">
-        <div class="newsletter-text">
-          <h2>Fique por dentro das novidades!</h2>
-          <p>Cadastre seu e-mail e receba ofertas exclusivas, cupons de desconto e dicas de manutenção para o seu veículo.</p>
-        </div>
-        <form class="newsletter-form" @submit.prevent>
-          <input type="email" placeholder="Digite seu melhor e-mail" required>
-          <button type="submit">Inscrever-se</button>
-        </form>
       </div>
     </section>
   </div>
@@ -197,30 +191,42 @@ onMounted(() => {
 
 <style scoped>
 .container {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1.5rem;
-  width: 100%;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  box-sizing: border-box;
 }
 
 .home-page {
   background-color: var(--bg-color);
   min-height: 100vh;
   padding-bottom: 4rem;
+  overflow-x: hidden;
 }
 
 .hero-section {
-  padding: 4rem 0 6rem 0;
+  padding: 3rem 0;
   background-color: var(--bg-color);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .hero-section {
+    padding: 4rem 0 6rem 0;
+  }
 }
 
 .hero-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 3rem;
+  gap: 2.5rem;
   align-items: center;
+  box-sizing: border-box;
 }
 
 @media (min-width: 992px) {
@@ -234,6 +240,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hero-badge {
@@ -242,34 +250,68 @@ onMounted(() => {
   color: var(--primary-dark);
   padding: 0.5rem 1.25rem;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .hero-badge {
+    font-size: 0.85rem;
+  }
 }
 
 .hero-text h1 {
-  font-size: 3.5rem;
+  font-size: 2.25rem;
   font-weight: 900;
-  line-height: 1.1;
-  margin-bottom: 1.5rem;
-  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
   color: var(--text-main);
+  word-wrap: break-word;
+}
+
+@media (min-width: 768px) {
+  .hero-text h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.03em;
+  }
 }
 
 .hero-text p {
-  font-size: 1.125rem;
-  line-height: 1.6;
-  margin-bottom: 2.5rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 2rem;
   color: var(--text-muted);
-  max-width: 90%;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .hero-text p {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 90%;
+  }
 }
 
 .hero-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  width: 100%;
   gap: 1rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .hero-actions {
+    flex-direction: row;
+    width: auto;
+  }
 }
 
 .btn-primary {
@@ -281,6 +323,15 @@ onMounted(() => {
   text-decoration: none;
   transition: all 0.3s ease;
   box-shadow: 0 10px 15px -3px rgba(0, 168, 89, 0.3);
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .btn-primary {
+    width: auto;
+  }
 }
 
 .btn-primary:hover {
@@ -298,6 +349,15 @@ onMounted(() => {
   text-decoration: none;
   transition: all 0.3s ease;
   border: 1px solid var(--border-color);
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .btn-secondary {
+    width: auto;
+  }
 }
 
 .btn-secondary:hover {
@@ -306,6 +366,8 @@ onMounted(() => {
 
 .hero-preview {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .loading-preview {
@@ -332,12 +394,15 @@ onMounted(() => {
 .preview-cards {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
   .preview-cards {
     grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
   }
 }
 
@@ -351,10 +416,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .preview-card:hover {
-  transform: translateY(-8px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
   border-color: var(--primary-light);
 }
@@ -369,6 +436,8 @@ onMounted(() => {
   margin-bottom: 1rem;
   overflow: hidden;
   padding: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .preview-image img {
@@ -447,25 +516,48 @@ onMounted(() => {
 }
 
 .benefits-section {
-  margin-bottom: 5rem;
+  margin-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+  .benefits-section {
+    margin-bottom: 5rem;
+  }
 }
 
 .benefits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .benefits-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .benefits-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .benefit-card {
   background-color: var(--surface-color);
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
   border-radius: 1rem;
   box-shadow: var(--shadow-sm);
   display: flex;
   align-items: flex-start;
-  gap: 1.25rem;
+  gap: 1rem;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: 1px solid var(--border-color);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .benefit-card:hover {
@@ -476,8 +568,8 @@ onMounted(() => {
 .icon-wrapper {
   background-color: var(--primary-light-bg);
   color: var(--primary-light);
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
@@ -485,16 +577,29 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+@media (min-width: 640px) {
+  .icon-wrapper {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
 .icon-wrapper svg {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .benefit-text h3 {
   color: var(--text-main);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 800;
   margin: 0 0 0.25rem 0;
+}
+
+@media (min-width: 640px) {
+  .benefit-text h3 {
+    font-size: 1.1rem;
+  }
 }
 
 .benefit-text p {
@@ -504,115 +609,157 @@ onMounted(() => {
   line-height: 1.4;
 }
 
+.info-section {
+  margin-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+  .info-section {
+    margin-bottom: 5rem;
+  }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .info-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.info-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.info-number {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--primary-light);
+  color: #ffffff;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.2rem;
+}
+
+.info-content h3 {
+  font-size: 1.1rem;
+  color: var(--text-main);
+  margin: 0 0 0.5rem 0;
+  font-weight: 800;
+}
+
+.info-content p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .section-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 1rem;
 }
 
+@media (min-width: 640px) {
+  .section-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+  }
+}
+
 .section-header h2 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   color: var(--primary-dark);
   margin: 0;
   font-weight: 800;
+}
+
+@media (min-width: 640px) {
+  .section-header h2 {
+    font-size: 1.75rem;
+  }
 }
 
 .view-all {
   color: var(--primary-light);
   text-decoration: none;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   transition: opacity 0.2s;
+}
+
+@media (min-width: 640px) {
+  .view-all {
+    font-size: 0.95rem;
+  }
 }
 
 .view-all:hover {
   opacity: 0.8;
 }
 
-.categories-section {
-  margin-bottom: 5rem;
-}
-
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.category-card {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 2.5rem 2rem;
-  text-align: center;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.category-card:hover {
-  border-color: var(--primary-light);
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(0, 168, 89, 0.15);
-}
-
-.category-icon {
-  width: 4rem;
-  height: 4rem;
-  background-color: var(--surface-hover);
-  color: var(--primary-dark);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.25rem;
-  transition: all 0.3s ease;
-}
-
-.category-card:hover .category-icon {
-  background-color: var(--primary-light);
-  color: #ffffff;
-}
-
-.category-icon svg {
-  width: 2rem;
-  height: 2rem;
-}
-
-.category-card h3 {
-  color: var(--text-main);
-  font-size: 1.125rem;
-  font-weight: 800;
-  margin: 0 0 0.5rem 0;
-}
-
-.category-card p {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  margin: 0;
-}
-
 .products-section {
-  margin-bottom: 5rem;
+  margin-bottom: 4rem;
 }
 
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 4rem 0;
-  color: var(--text-muted);
+@media (min-width: 768px) {
+  .products-section {
+    margin-bottom: 5rem;
+  }
 }
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 2rem;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 480px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .product-card {
@@ -623,6 +770,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .product-card:hover {
@@ -639,6 +788,9 @@ onMounted(() => {
   justify-content: center;
   overflow: hidden;
   padding: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
 }
 
 .catalog-img {
@@ -653,7 +805,7 @@ onMounted(() => {
 }
 
 .product-info {
-  padding: 1.5rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -669,7 +821,7 @@ onMounted(() => {
 }
 
 .product-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: var(--text-main);
   margin: 0 0 1rem 0;
   line-height: 1.4;
@@ -682,7 +834,7 @@ onMounted(() => {
 }
 
 .product-price {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--primary-dark);
 }
@@ -702,76 +854,5 @@ onMounted(() => {
 .product-card:hover .add-to-cart-btn {
   background-color: var(--primary-light);
   color: #ffffff;
-}
-
-.newsletter-section {
-  background-color: var(--primary-light-bg);
-  padding: 4rem 2rem;
-  border-radius: 1.5rem;
-}
-
-.newsletter-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.newsletter-text h2 {
-  font-size: 2rem;
-  color: var(--primary-dark);
-  margin: 0 0 1rem 0;
-  font-weight: 900;
-}
-
-.newsletter-text p {
-  color: var(--text-main);
-  font-size: 1.05rem;
-  margin: 0 0 2rem 0;
-}
-
-.newsletter-form {
-  display: flex;
-  width: 100%;
-  gap: 0.5rem;
-}
-
-@media (max-width: 640px) {
-  .newsletter-form {
-    flex-direction: column;
-  }
-}
-
-.newsletter-form input {
-  flex-grow: 1;
-  padding: 1rem 1.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  font-size: 1rem;
-  outline: none;
-  background-color: var(--surface-color);
-  color: var(--text-main);
-}
-
-.newsletter-form input:focus {
-  border-color: var(--primary-light);
-}
-
-.newsletter-form button {
-  background-color: var(--primary-light);
-  color: #ffffff;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 0.75rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  white-space: nowrap;
-}
-
-.newsletter-form button:hover {
-  background-color: var(--primary-hover);
 }
 </style>

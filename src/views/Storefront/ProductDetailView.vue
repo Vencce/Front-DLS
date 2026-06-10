@@ -1,310 +1,241 @@
 <template>
-  <div class="product-detail-page">
-    <div class="container">
-      <nav class="breadcrumb" v-animate>
-        <router-link to="/">Início</router-link>
-        <span class="separator">/</span>
-        <router-link to="/catalogo">Catálogo</router-link>
-        <span class="separator">/</span>
-        <span class="current-page">{{ productStore.currentProduct?.name || 'Carregando...' }}</span>
-      </nav>
-
-      <div v-if="productStore.loading" class="feedback-state">
+  <div class="product-page">
+    <div class="container" v-if="loading">
+      <div class="loading-state">
         <div class="spinner"></div>
-        <p>Carregando detalhes do produto...</p>
+      </div>
+    </div>
+    
+    <div class="container" v-else-if="product">
+      <div class="breadcrumb">
+        <router-link to="/">Início</router-link>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <router-link to="/catalogo">Catálogo</router-link>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <span class="current">{{ product.name }}</span>
       </div>
 
-      <div v-else-if="productStore.error" class="feedback-state error">
-        <p>{{ productStore.error }}</p>
-        <router-link to="/catalogo" class="back-btn">Voltar ao Catálogo</router-link>
-      </div>
-
-      <div v-else-if="productStore.currentProduct" class="product-layout" v-animate>
+      <div class="product-layout">
         <div class="product-gallery">
           <div class="main-image">
-            <div v-if="hasImages" class="image-wrapper">
-              <img :src="mainImage" :alt="productStore.currentProduct.name" class="product-img">
-            </div>
+            <img :src="activeImage" :alt="product.name" v-if="activeImage">
             <div v-else class="image-placeholder">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
+              <span>Sem imagem disponível</span>
             </div>
           </div>
-          <div class="thumbnail-list" v-if="hasMultipleImages">
-            <div 
-              v-for="img in productStore.currentProduct.images" 
+          <div class="thumbnail-list" v-if="product.images && product.images.length > 1">
+            <button 
+              v-for="img in product.images" 
               :key="img.id"
-              class="thumbnail"
-              :class="{ active: selectedImage === img.image }"
-              @click="selectedImage = img.image"
+              class="thumbnail-btn"
+              :class="{ active: activeImage === img.image }"
+              @click="activeImage = img.image"
             >
-              <img :src="img.image" :alt="productStore.currentProduct.name">
-            </div>
+              <img :src="img.image" :alt="product.name">
+            </button>
           </div>
         </div>
 
         <div class="product-info">
-          <span class="brand-badge">{{ productStore.currentProduct.brand_name || 'Diversos' }}</span>
-          <h1 class="product-title">{{ productStore.currentProduct.name }}</h1>
+          <div class="brand-badge">{{ product.brand_name || 'DLS Auto Peças' }}</div>
+          <h1 class="product-title">{{ product.name }}</h1>
           
-          <div class="price-section">
-            <span class="current-price">{{ formatPrice(productStore.currentProduct.price) }}</span>
-            <span class="payment-conditions">
-              em até 12x sem juros ou <strong class="discount-highlight">{{ formatPrice(productStore.currentProduct.price * 0.95) }} no PIX (5% OFF)</strong>
-            </span>
+          <div class="product-codes">
+            <div class="code-item" v-if="product.sku">
+              <span class="label">SKU:</span>
+              <span class="value">{{ product.sku }}</span>
+            </div>
+            <div class="code-item highlight-code" v-if="product.oem_code">
+              <span class="label">Código OEM:</span>
+              <span class="value">{{ product.oem_code }}</span>
+            </div>
           </div>
 
-          <div class="buy-section">
-            <div class="quantity-selector">
-              <label for="quantity">Quantidade:</label>
-              <div class="quantity-controls">
-                <button @click="decreaseQuantity" :disabled="quantity <= 1">-</button>
-                <input type="number" id="quantity" v-model.number="quantity" min="1" :max="productStore.currentProduct.stock">
-                <button @click="increaseQuantity" :disabled="quantity >= productStore.currentProduct.stock">+</button>
-              </div>
+          <div class="price-section">
+            <div class="price">{{ formatPrice(product.price) }}</div>
+            <div class="pix-discount">
+              <strong>{{ formatPrice(product.price * 0.95) }}</strong> à vista no PIX ou Depósito
             </div>
-            <button 
-              class="add-to-cart-btn" 
-              @click="handleAddToCart"
-              :disabled="productStore.currentProduct.stock <= 0"
-            >
-              {{ productStore.currentProduct.stock > 0 ? 'Adicionar ao Carrinho' : 'Produto Indisponível' }}
+            <div class="installments">
+              ou em até 12x no cartão de crédito
+            </div>
+          </div>
+
+          <div class="shipping-calc">
+            <label for="cep-calc">Calcular Frete e Prazo</label>
+            <div class="cep-group">
+              <input type="text" id="cep-calc" placeholder="00000-000" maxlength="9">
+              <button type="button">Calcular</button>
+            </div>
+          </div>
+
+          <div class="purchase-actions">
+            <div class="qty-selector">
+              <button @click="qty > 1 ? qty-- : null" :disabled="qty <= 1">-</button>
+              <span>{{ qty }}</span>
+              <button @click="qty < product.stock ? qty++ : null" :disabled="qty >= product.stock">+</button>
+            </div>
+            <button class="btn-buy" @click="handleAddToCart" :disabled="product.stock < 1">
+              {{ product.stock > 0 ? 'Adicionar ao Carrinho' : 'Produto Indisponível' }}
             </button>
           </div>
 
-          <div class="stock-info">
-            <span v-if="productStore.currentProduct.stock > 0" class="in-stock">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-              {{ productStore.currentProduct.stock }} unidades em estoque
-            </span>
-            <span v-else class="out-of-stock">Sem estoque no momento</span>
-          </div>
-
-          <div class="shipping-calculator">
-            <h3>Simular Frete e Prazo</h3>
-            <div class="shipping-form">
-              <input type="text" v-model="zipCode" placeholder="Digite seu CEP" maxlength="9" @keyup.enter="simulateShipping">
-              <button class="calculate-btn" @click="simulateShipping" :disabled="isSimulating || !zipCode">
-                {{ isSimulating ? 'Calculando...' : 'Calcular' }}
-              </button>
+          <div class="security-badges">
+            <div class="badge">
+              <div class="badge-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div class="badge-text">
+                <strong>Garantia de 3 Meses</strong>
+                <span>Válida apenas com o lacre de segurança intacto</span>
+              </div>
             </div>
-            
-            <div v-if="shippingOptions.length > 0" class="shipping-results">
-              <div v-for="(option, index) in shippingOptions" :key="index" class="shipping-option">
-                <span class="shipping-company">{{ option.service }}</span>
-                <span class="shipping-time">Até {{ option.deadline_days }} dias úteis</span>
-                <span class="shipping-price">{{ formatPrice(parseFloat(option.price)) }}</span>
+            <div class="badge">
+              <div class="badge-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
+              <div class="badge-text">
+                <strong>Compra Segura</strong>
+                <span>Todos os produtos acompanham Nota Fiscal</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="productStore.currentProduct" class="technical-details" v-animate>
-        <h2>Informações Técnicas</h2>
-        <div class="details-content">
-          <p>{{ productStore.currentProduct.description }}</p>
+      <div class="product-details-tabs">
+        <div class="tabs-header">
+          <button class="tab-btn active">Detalhes da Peça</button>
+        </div>
+        <div class="tab-content">
+          <div class="description-block">
+            <h3>Descrição do Produto</h3>
+            <p class="description-text">{{ product.description || 'Nenhuma descrição detalhada fornecida para este produto. Consulte as imagens e o código OEM para confirmar a compatibilidade.' }}</p>
+          </div>
           
-          <div class="specs-table">
-            <div class="spec-row">
-              <span class="spec-label">Código SKU:</span>
-              <span class="spec-value">{{ productStore.currentProduct.sku }}</span>
+          <div class="compatibility-section" v-if="product.compatibilities && product.compatibilities.length > 0">
+            <h3>Aplicações e Veículos Compatíveis</h3>
+            <ul class="compatibility-list">
+              <li v-for="(comp, idx) in product.compatibilities" :key="idx">
+                <span class="comp-maker">{{ comp.maker }}</span>
+                <span class="comp-model">{{ comp.model }}</span>
+                <span class="comp-year">{{ comp.start_year }} - {{ comp.end_year }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="important-notice">
+            <div class="notice-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
-            <div class="spec-row" v-if="productStore.currentProduct.oem_code">
-              <span class="spec-label">Código Original (OEM):</span>
-              <span class="spec-value">{{ productStore.currentProduct.oem_code }}</span>
-            </div>
-            <div class="spec-row">
-              <span class="spec-label">Marca:</span>
-              <span class="spec-value">{{ productStore.currentProduct.brand_name || 'Diversos' }}</span>
-            </div>
-            <div class="spec-row">
-              <span class="spec-label">Categoria:</span>
-              <span class="spec-value">{{ productStore.currentProduct.category_name || 'Geral' }}</span>
-            </div>
-            <div class="spec-row">
-              <span class="spec-label">Peso:</span>
-              <span class="spec-value">{{ productStore.currentProduct.weight_kg }} kg</span>
+            <div class="notice-text">
+              <h3>Atenção antes de comprar</h3>
+              <p>Nossas peças são <strong>usadas</strong>. Avalie cuidadosamente as fotos no anúncio para identificar eventuais detalhes ou avarias. Confirme a compatibilidade com seu mecânico utilizando o <strong>Código OEM</strong>. A instalação incorreta pode comprometer o funcionamento do seu veículo. A garantia de devolução não cobre a violação do nosso lacre de segurança exclusivo.</p>
             </div>
           </div>
         </div>
-
-        <template v-if="productStore.currentProduct.compatibilities && productStore.currentProduct.compatibilities.length > 0">
-          <h2>Veículos Compatíveis</h2>
-          <ul class="compatibility-list">
-            <li v-for="(comp, index) in productStore.currentProduct.compatibilities" :key="index">
-              {{ comp.maker }} {{ comp.model }} ({{ comp.start_year }} a {{ comp.end_year || 'Atual' }})
-            </li>
-          </ul>
-        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useProductStore } from '../../stores/productStore'
 import { useCartStore } from '../../stores/cartStore'
 import api from '../../services/api'
 
 const route = useRoute()
 const router = useRouter()
-const productStore = useProductStore()
 const cartStore = useCartStore()
 
-const quantity = ref(1)
-const selectedImage = ref(null)
-const zipCode = ref('')
-const shippingOptions = ref([])
-const isSimulating = ref(false)
+const product = ref(null)
+const loading = ref(true)
+const activeImage = ref('')
+const qty = ref(1)
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
-const hasImages = computed(() => {
-  return productStore.currentProduct?.images && productStore.currentProduct.images.length > 0
-})
-
-const hasMultipleImages = computed(() => {
-  return productStore.currentProduct?.images && productStore.currentProduct.images.length > 1
-})
-
-const mainImage = computed(() => {
-  if (selectedImage.value) return selectedImage.value
-  if (hasImages.value) {
-    const mainImg = productStore.currentProduct.images.find(img => img.is_main)
-    return mainImg ? mainImg.image : productStore.currentProduct.images[0].image
-  }
-  return null
-})
-
-const increaseQuantity = () => {
-  if (quantity.value < productStore.currentProduct.stock) {
-    quantity.value++
-  }
-}
-
-const decreaseQuantity = () => {
-  if (quantity.value > 1) {
-    quantity.value--
+const fetchProductDetails = async (id) => {
+  loading.value = true
+  try {
+    const response = await api.get(`/catalog/products/${id}/`)
+    product.value = response.data
+    if (product.value.images && product.value.images.length > 0) {
+      activeImage.value = product.value.images[0].image
+    }
+  } catch (error) {
+    console.error('Erro ao carregar produto:', error)
+    router.push('/catalogo')
+  } finally {
+    loading.value = false
   }
 }
 
 const handleAddToCart = () => {
-  if (!productStore.currentProduct) return
+  if (!product.value || product.value.stock < 1) return
   
   cartStore.addItem({
-    id: productStore.currentProduct.id,
-    name: productStore.currentProduct.name,
-    price: parseFloat(productStore.currentProduct.price),
-    brand: productStore.currentProduct.brand_name,
-    image: mainImage.value,
-    quantity: quantity.value
+    id: product.value.id,
+    name: product.value.name,
+    price: parseFloat(product.value.price),
+    brand: product.value.brand_name,
+    image: activeImage.value,
+    quantity: qty.value
   })
   
   router.push('/carrinho')
 }
 
-const simulateShipping = async () => {
-  if (!zipCode.value || zipCode.value.length < 8) return
-  
-  isSimulating.value = true
-  try {
-    const response = await api.post('/orders/shipping/simulate/', {
-      zip_code: zipCode.value.replace(/\D/g, ''),
-      items: [{
-        product_id: productStore.currentProduct.id,
-        quantity: quantity.value
-      }]
-    })
-    shippingOptions.value = response.data
-  } catch (error) {
-    console.error('Erro ao simular frete', error)
-  } finally {
-    isSimulating.value = false
-  }
-}
-
 onMounted(() => {
-  const productId = route.params.slug
-  if (productId) {
-    productStore.fetchProductById(productId)
+  if (route.params.slug) {
+    fetchProductDetails(route.params.slug)
+  }
+})
+
+watch(() => route.params.slug, (newSlug) => {
+  if (newSlug) {
+    fetchProductDetails(newSlug)
   }
 })
 </script>
 
 <style scoped>
-.product-detail-page {
+.product-page {
   background-color: var(--bg-color);
-  padding: 3rem 0 5rem 0;
   min-height: 100vh;
+  padding: 2rem 0 5rem 0;
+  overflow-x: hidden;
 }
 
 .container {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  box-sizing: border-box;
 }
 
-.breadcrumb {
+.loading-state {
   display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-bottom: 2.5rem;
-  font-weight: 500;
-}
-
-.breadcrumb a {
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.breadcrumb a:hover {
-  color: var(--primary-light);
-}
-
-.separator {
-  margin: 0 0.5rem;
-  color: var(--border-color);
-}
-
-.current-page {
-  color: var(--primary-light);
-  font-weight: 600;
-}
-
-.feedback-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 5rem 0;
-  color: var(--text-muted);
-  background-color: var(--surface-color);
-  border-radius: 1.5rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.feedback-state.error {
-  color: #ef4444;
+  align-items: center;
+  height: 400px;
 }
 
 .spinner {
-  border: 4px solid rgba(0, 168, 89, 0.2);
+  border: 4px solid rgba(0, 168, 89, 0.1);
   border-left-color: var(--primary-light);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -312,75 +243,88 @@ onMounted(() => {
   100% { transform: rotate(360deg); }
 }
 
-.back-btn {
-  margin-top: 1.5rem;
-  padding: 0.75rem 1.5rem;
-  background-color: var(--primary-light);
-  color: #ffffff;
-  border-radius: 0.5rem;
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.breadcrumb a {
+  color: var(--text-muted);
   text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+  color: var(--primary-light);
+}
+
+.breadcrumb svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.breadcrumb .current {
+  color: var(--text-main);
   font-weight: 700;
 }
 
 .product-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 4rem;
-  margin-bottom: 5rem;
-  background-color: var(--surface-color);
-  padding: 3rem;
-  border-radius: 1.5rem;
-  box-shadow: var(--shadow-md);
-  transition: background-color 0.3s ease;
+  gap: 3rem;
+  margin-bottom: 4rem;
 }
 
 @media (min-width: 992px) {
   .product-layout {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.1fr 0.9fr;
   }
 }
 
 .product-gallery {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .main-image {
-  background-color: var(--surface-hover);
+  width: 100%;
+  aspect-ratio: 4/3;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
   border-radius: 1rem;
-  height: 450px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
-.image-wrapper {
+.main-image img {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.product-img {
-  max-width: 100%;
-  max-height: 100%;
   object-fit: contain;
 }
 
 .image-placeholder {
-  color: var(--border-color);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  color: var(--text-muted);
+  gap: 1rem;
 }
 
 .image-placeholder svg {
-  width: 5rem;
-  height: 5rem;
+  width: 4rem;
+  height: 4rem;
+  color: var(--border-color);
 }
 
 .thumbnail-list {
@@ -388,32 +332,36 @@ onMounted(() => {
   gap: 1rem;
   overflow-x: auto;
   padding-bottom: 0.5rem;
+  scrollbar-width: thin;
 }
 
-.thumbnail {
-  background-color: var(--surface-hover);
-  border: 2px solid transparent;
-  border-radius: 0.5rem;
-  height: 80px;
+.thumbnail-btn {
   width: 80px;
+  height: 80px;
   flex-shrink: 0;
+  background-color: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  overflow: hidden;
-  transition: all 0.2s ease;
 }
 
-.thumbnail img {
-  max-width: 100%;
-  max-height: 100%;
+.thumbnail-btn img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
-.thumbnail.active, .thumbnail:hover {
+.thumbnail-btn:hover {
+  border-color: var(--text-muted);
+}
+
+.thumbnail-btn.active {
   border-color: var(--primary-light);
-  background-color: var(--surface-color);
 }
 
 .product-info {
@@ -423,339 +371,420 @@ onMounted(() => {
 
 .brand-badge {
   display: inline-block;
-  background-color: var(--primary-light-bg);
-  color: var(--primary-light);
-  padding: 0.375rem 1rem;
-  border-radius: 9999px;
+  background-color: var(--surface-hover);
+  color: var(--text-main);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 1.25rem;
-  width: fit-content;
+  margin-bottom: 1rem;
+  align-self: flex-start;
+  border: 1px solid var(--border-color);
 }
 
 .product-title {
-  font-size: 2.25rem;
-  color: var(--primary-dark);
-  margin: 0 0 1.5rem 0;
-  line-height: 1.2;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.price-section {
-  margin-bottom: 1.5rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.current-price {
-  display: block;
-  font-size: 3rem;
-  font-weight: 800;
+  font-size: 1.75rem;
   color: var(--text-main);
-  margin-bottom: 0.5rem;
-  line-height: 1;
+  margin: 0 0 1.5rem 0;
+  font-weight: 800;
+  line-height: 1.3;
 }
 
-.payment-conditions {
-  color: var(--text-muted);
-  font-size: 1rem;
-}
-
-.discount-highlight {
-  color: var(--primary-light);
-}
-
-.stock-info {
-  margin-bottom: 2.5rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.in-stock {
-  color: var(--primary-light);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.in-stock svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.out-of-stock {
-  color: #ef4444;
-}
-
-.buy-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (min-width: 640px) {
-  .buy-section {
-    flex-direction: row;
-    align-items: flex-end;
+@media (min-width: 768px) {
+  .product-title {
+    font-size: 2.25rem;
   }
 }
 
-.quantity-selector {
+.product-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.code-item {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+}
+
+.code-item .label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.code-item .value {
+  font-size: 1rem;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.highlight-code .value {
+  color: var(--primary-light);
+  font-size: 1.1rem;
+  background-color: var(--primary-light-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.price-section {
+  margin-bottom: 2rem;
+}
+
+.price {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--primary-dark);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.pix-discount {
+  color: var(--primary-light);
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.installments {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.shipping-calc {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.shipping-calc label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.75rem;
+}
+
+.cep-group {
+  display: flex;
   gap: 0.5rem;
 }
 
-.quantity-selector label {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  font-weight: 600;
+.cep-group input {
+  flex-grow: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-size: 1rem;
+  outline: none;
 }
 
-.quantity-controls {
+.cep-group input:focus {
+  border-color: var(--primary-light);
+}
+
+.cep-group button {
+  background-color: var(--surface-hover);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cep-group button:hover {
+  background-color: var(--border-color);
+}
+
+.purchase-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .purchase-actions {
+    flex-direction: row;
+  }
+}
+
+.qty-selector {
   display: flex;
   align-items: center;
+  background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 0.75rem;
-  overflow: hidden;
-  background-color: var(--surface-color);
-  height: 52px;
+  height: 54px;
 }
 
-.quantity-controls button {
-  background-color: transparent;
+.qty-selector button {
+  background: none;
   border: none;
+  color: var(--text-main);
   width: 40px;
   height: 100%;
   font-size: 1.25rem;
-  color: var(--text-muted);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.quantity-controls button:hover:not(:disabled) {
+.qty-selector button:hover:not(:disabled) {
   background-color: var(--surface-hover);
-  color: var(--text-main);
 }
 
-.quantity-controls button:disabled {
-  opacity: 0.5;
+.qty-selector button:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-.quantity-controls input {
-  width: 50px;
-  height: 100%;
+.qty-selector span {
+  width: 40px;
   text-align: center;
-  border: none;
-  border-left: 1px solid var(--border-color);
-  border-right: 1px solid var(--border-color);
-  font-size: 1.125rem;
   font-weight: 700;
   color: var(--text-main);
-  background-color: transparent;
-  outline: none;
 }
 
-.quantity-controls input::-webkit-outer-spin-button,
-.quantity-controls input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.add-to-cart-btn {
+.btn-buy {
   flex-grow: 1;
   background-color: var(--primary-light);
   color: #ffffff;
   border: none;
-  padding: 0 2rem;
   border-radius: 0.75rem;
-  font-size: 1.125rem;
+  font-size: 1.1rem;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.3s ease;
-  height: 52px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-buy:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
   box-shadow: 0 10px 15px -3px rgba(0, 168, 89, 0.3);
 }
 
-.add-to-cart-btn:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 15px 20px -3px rgba(0, 168, 89, 0.4);
-}
-
-.add-to-cart-btn:disabled {
+.btn-buy:disabled {
   background-color: var(--border-color);
   color: var(--text-muted);
-  box-shadow: none;
   cursor: not-allowed;
 }
 
-.shipping-calculator {
-  background-color: var(--surface-hover);
-  padding: 2rem;
-  border-radius: 1rem;
-  border: 1px solid var(--border-color);
-}
-
-.shipping-calculator h3 {
-  font-size: 1.125rem;
-  color: var(--primary-dark);
-  margin: 0 0 1.25rem 0;
-  font-weight: 700;
-}
-
-.shipping-form {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.shipping-form input {
-  flex-grow: 1;
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  outline: none;
-  background-color: var(--surface-color);
-  color: var(--text-main);
-  transition: border-color 0.2s ease;
-}
-
-.shipping-form input:focus {
-  border-color: var(--primary-light);
-}
-
-.calculate-btn {
-  background-color: var(--primary-dark);
-  color: #ffffff;
-  border: none;
-  padding: 0 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.calculate-btn:hover:not(:disabled) {
-  background-color: #00361c;
-}
-
-.calculate-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.shipping-results {
+.security-badges {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.shipping-option {
+.badge {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem 0;
-  border-top: 1px solid var(--border-color);
-  font-size: 0.95rem;
+  gap: 1rem;
 }
 
-.shipping-company {
-  font-weight: 600;
+.badge-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--primary-light-bg);
+  color: var(--primary-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.badge-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.badge-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.badge-text strong {
+  font-size: 0.95rem;
   color: var(--text-main);
 }
 
-.shipping-time {
+.badge-text span {
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
-.shipping-price {
-  font-weight: 800;
-  color: var(--primary-light);
-}
-
-.technical-details {
+.product-details-tabs {
   background-color: var(--surface-color);
-  padding: 3rem;
-  border-radius: 1.5rem;
-  box-shadow: var(--shadow-md);
-}
-
-.technical-details h2 {
-  font-size: 1.75rem;
-  color: var(--primary-dark);
-  margin: 0 0 2rem 0;
-  font-weight: 800;
-}
-
-.details-content p {
-  color: var(--text-muted);
-  line-height: 1.8;
-  margin-bottom: 2.5rem;
-  font-size: 1.05rem;
-}
-
-.specs-table {
-  display: flex;
-  flex-direction: column;
   border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   overflow: hidden;
-  margin-bottom: 3.5rem;
 }
 
-.spec-row {
+.tabs-header {
   display: flex;
-  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
-}
-
-.spec-row:last-child {
-  border-bottom: none;
-}
-
-.spec-row:nth-child(even) {
   background-color: var(--surface-hover);
 }
 
-.spec-label {
-  width: 40%;
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 1.25rem 2rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: var(--text-muted);
+  cursor: pointer;
+  position: relative;
 }
 
-.spec-value {
-  width: 60%;
+.tab-btn.active {
+  color: var(--primary-light);
+  background-color: var(--surface-color);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--primary-light);
+}
+
+.tab-content {
+  padding: 2rem;
+}
+
+.description-block {
+  margin-bottom: 3rem;
+}
+
+.description-block h3,
+.compatibility-section h3 {
+  font-size: 1.25rem;
+  color: var(--text-main);
+  margin: 0 0 1rem 0;
+  font-weight: 800;
+}
+
+.description-text {
   color: var(--text-muted);
+  line-height: 1.6;
+  font-size: 1rem;
+  white-space: pre-line;
+}
+
+.compatibility-section {
+  margin-bottom: 3rem;
 }
 
 .compatibility-list {
-  list-style-type: none;
+  list-style: none;
   padding: 0;
-  color: var(--text-muted);
-  line-height: 1.8;
+  margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .compatibility-list {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .compatibility-list li {
-  position: relative;
-  padding-left: 1.5rem;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
 }
 
-.compatibility-list li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--primary-light);
-  font-weight: bold;
+.comp-maker {
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.comp-model {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.comp-year {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-left: auto;
+}
+
+.important-notice {
+  background-color: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .important-notice {
+    flex-direction: row;
+  }
+}
+
+.notice-icon {
+  width: 3rem;
+  height: 3rem;
+  background-color: #f97316;
+  color: #ffffff;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notice-icon svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.notice-text h3 {
+  color: #c2410c;
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 800;
+}
+
+.notice-text p {
+  color: #9a3412;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.notice-text strong {
+  font-weight: 800;
 }
 </style>

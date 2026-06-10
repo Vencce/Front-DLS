@@ -1,11 +1,11 @@
 <template>
-  <div class="product-management-page">
+  <div class="admin-products-page">
     <div class="page-header" v-animate>
       <div>
-        <h1 class="page-title">Gestão de Produtos</h1>
-        <p class="page-subtitle">Adicione, edite e gerencie o estoque da loja.</p>
+        <h1 class="page-title">Gerenciamento de Produtos</h1>
+        <p class="page-subtitle">Controle seu catálogo, estoque e preços.</p>
       </div>
-      <button class="btn-primary" @click="openModal">
+      <button class="btn-primary">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -13,57 +13,95 @@
       </button>
     </div>
 
-    <div class="panel" v-animate>
-      <div class="panel-header">
-        <div class="search-box">
-          <input type="text" v-model="searchQuery" placeholder="Buscar por SKU ou nome..." @keyup.enter="fetchProducts">
-          <button class="search-btn" @click="fetchProducts">Buscar</button>
-        </div>
+    <div class="filters-card" v-animate>
+      <div class="search-bar">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input type="text" v-model="filters.search" placeholder="Buscar por nome da peça, código SKU ou OEM...">
       </div>
-      
+      <div class="filter-options">
+        <div class="input-group">
+          <select v-model="filters.category">
+            <option value="">Todas as Categorias</option>
+            <option value="injecao">Sistemas de Injeção</option>
+            <option value="motor">Componentes de Motor</option>
+            <option value="filtros">Filtros</option>
+            <option value="eletrica">Elétrica</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <select v-model="filters.brand">
+            <option value="">Todas as Marcas</option>
+            <option value="bosch">Bosch</option>
+            <option value="delphi">Delphi</option>
+            <option value="cummins">Cummins</option>
+            <option value="master power">Master Power</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <select v-model="filters.stock">
+            <option value="">Situação do Estoque</option>
+            <option value="in_stock">Em Estoque</option>
+            <option value="out_of_stock">Esgotado</option>
+          </select>
+        </div>
+        <button class="btn-clear" @click="clearFilters">Limpar Filtros</button>
+      </div>
+    </div>
+
+    <div class="table-card" v-animate>
       <div class="table-responsive">
-        <table class="admin-table">
+        <table class="data-table">
           <thead>
             <tr>
-              <th>SKU</th>
               <th>Produto</th>
+              <th>SKU / OEM</th>
               <th>Preço</th>
               <th>Estoque</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="loading">
-              <td colspan="5" class="text-center py-4">Carregando produtos...</td>
+            <tr v-if="filteredProducts.length === 0">
+              <td colspan="5" class="empty-state">
+                Nenhum produto encontrado com os filtros selecionados.
+              </td>
             </tr>
-            <tr v-else-if="products.length === 0">
-              <td colspan="5" class="text-center py-4">Nenhum produto encontrado.</td>
-            </tr>
-            <tr v-else v-for="product in products" :key="product.id">
-              <td><strong>{{ product.sku }}</strong></td>
+            <tr v-for="product in filteredProducts" :key="product.id">
               <td>
-                <div class="product-name-cell">
-                  <span class="text-main">{{ product.name }}</span>
-                  <span class="text-muted text-sm">{{ product.brand_name }} | {{ product.category_name }}</span>
+                <div class="product-cell">
+                  <div class="img-wrapper">
+                    <img v-if="product.images && product.images.length > 0" :src="product.images[0].image" :alt="product.name">
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div class="product-info">
+                    <span class="brand">{{ product.brand_name || 'DLS Auto Peças' }}</span>
+                    <span class="name">{{ product.name }}</span>
+                  </div>
                 </div>
               </td>
-              <td class="font-bold text-main">{{ formatPrice(product.price) }}</td>
               <td>
-                <span :class="['status-badge', product.stock > 0 ? 'status-paid' : 'status-pending']">
-                  {{ product.stock }} un.
+                <div class="codes-cell">
+                  <span class="sku">{{ product.sku || 'N/A' }}</span>
+                  <span class="oem" v-if="product.oem_code">OEM: {{ product.oem_code }}</span>
+                </div>
+              </td>
+              <td class="price-cell">{{ formatPrice(product.price) }}</td>
+              <td>
+                <span class="status-badge" :class="product.stock > 0 ? 'status-active' : 'status-danger'">
+                  {{ product.stock }} un
                 </span>
               </td>
               <td>
                 <div class="action-buttons">
-                  <button class="action-btn text-blue" title="Editar">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
+                  <button class="btn-icon edit" title="Editar">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
-                  <button class="action-btn text-red" title="Excluir" @click="deleteProduct(product.id)">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                  <button class="btn-icon delete" title="Excluir">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
               </td>
@@ -72,221 +110,76 @@
         </table>
       </div>
     </div>
-
-    <div class="modal-overlay" v-if="isModalOpen" @click.self="closeModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Cadastrar Novo Produto</h2>
-          <button class="close-btn" @click="closeModal">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        <form class="modal-body" @submit.prevent="saveProduct">
-          <div class="form-grid">
-            <div class="form-group full-width">
-              <label for="name">Nome do Produto</label>
-              <input type="text" id="name" v-model="formData.name" required>
-            </div>
-            
-            <div class="form-group">
-              <label for="sku">SKU</label>
-              <input type="text" id="sku" v-model="formData.sku" required>
-            </div>
-            
-            <div class="form-group">
-              <label for="oem_code">Código Original (OEM)</label>
-              <input type="text" id="oem_code" v-model="formData.oem_code">
-            </div>
-
-            <div class="form-group">
-              <label for="price">Preço (R$)</label>
-              <input type="number" id="price" v-model="formData.price" step="0.01" required>
-            </div>
-
-            <div class="form-group">
-              <label for="stock">Estoque Inicial</label>
-              <input type="number" id="stock" v-model="formData.stock" required>
-            </div>
-
-            <div class="form-group">
-              <label for="brand">Marca</label>
-              <select id="brand" v-model="formData.brand" required>
-                <option value="" disabled>Selecione a marca</option>
-                <option v-for="brand in brands" :key="brand.id" :value="brand.id">
-                  {{ brand.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="category">Categoria</label>
-              <select id="category" v-model="formData.category" required>
-                <option value="" disabled>Selecione a categoria</option>
-                <option v-for="category in categories" :key="category.id" :value="category.id">
-                  {{ category.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group full-width">
-              <label for="image">Imagem do Produto</label>
-              <input type="file" id="image" @change="handleImageUpload" accept="image/*">
-            </div>
-
-            <div class="form-group full-width">
-              <label for="description">Descrição do Produto</label>
-              <textarea id="description" v-model="formData.description" rows="4" required></textarea>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn-secondary" @click="closeModal">Cancelar</button>
-            <button type="submit" class="btn-primary" :disabled="saving">
-              {{ saving ? 'Salvando...' : 'Salvar Produto' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import api from '../../services/api'
+import { ref, computed, onMounted } from 'vue'
+import { useProductStore } from '../../stores/productStore'
 
-const products = ref([])
-const brands = ref([])
-const categories = ref([])
-const loading = ref(false)
-const saving = ref(false)
-const searchQuery = ref('')
-const isModalOpen = ref(false)
-const imageFile = ref(null)
+const productStore = useProductStore()
 
-const formData = reactive({
-  name: '',
-  sku: '',
-  oem_code: '',
-  description: '',
-  price: '',
-  stock: 0,
-  weight_kg: 0.0,
+const filters = ref({
+  search: '',
+  category: '',
   brand: '',
-  category: ''
+  stock: ''
 })
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
-const fetchProducts = async () => {
-  loading.value = true
-  try {
-    const response = await api.get('/catalog/products/', {
-      params: { search: searchQuery.value }
-    })
-    products.value = response.data.results || response.data
-  } catch (error) {
-    console.error(error)
-  } finally {
-    loading.value = false
+const clearFilters = () => {
+  filters.value = {
+    search: '',
+    category: '',
+    brand: '',
+    stock: ''
   }
 }
 
-const fetchDependencies = async () => {
-  try {
-    const [brandsRes, categoriesRes] = await Promise.all([
-      api.get('/catalog/brands/'),
-      api.get('/catalog/categories/')
-    ])
-    brands.value = brandsRes.data.results || brandsRes.data
-    categories.value = categoriesRes.data.results || categoriesRes.data
-  } catch (error) {
-    console.error(error)
+const filteredProducts = computed(() => {
+  let result = productStore.products
+
+  if (filters.value.search) {
+    const q = filters.value.search.toLowerCase()
+    result = result.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      (p.sku && p.sku.toLowerCase().includes(q)) || 
+      (p.oem_code && p.oem_code.toLowerCase().includes(q))
+    )
   }
-}
 
-const openModal = () => {
-  resetForm()
-  isModalOpen.value = true
-}
-
-const closeModal = () => {
-  isModalOpen.value = false
-}
-
-const resetForm = () => {
-  formData.name = ''
-  formData.sku = ''
-  formData.oem_code = ''
-  formData.description = ''
-  formData.price = ''
-  formData.stock = 0
-  formData.weight_kg = 0.0
-  formData.brand = ''
-  formData.category = ''
-  imageFile.value = null
-  const fileInput = document.getElementById('image')
-  if (fileInput) fileInput.value = ''
-}
-
-const handleImageUpload = (event) => {
-  const file = event.target.files[0]
-  if (file) {
-    imageFile.value = file
+  if (filters.value.category) {
+    const cat = filters.value.category.toLowerCase()
+    result = result.filter(p => 
+      (p.category_name && p.category_name.toLowerCase().includes(cat)) || 
+      String(p.category) === cat
+    )
   }
-}
 
-const saveProduct = async () => {
-  saving.value = true
-  try {
-    const productResponse = await api.post('/catalog/products/', formData)
-    const productId = productResponse.data.id
-
-    if (imageFile.value) {
-      const imageFormData = new FormData()
-      imageFormData.append('product', productId)
-      imageFormData.append('image', imageFile.value)
-      imageFormData.append('is_main', true)
-
-      await api.post('/catalog/images/', imageFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-    }
-
-    await fetchProducts()
-    closeModal()
-  } catch (error) {
-    console.error(error)
-  } finally {
-    saving.value = false
+  if (filters.value.brand) {
+    const br = filters.value.brand.toLowerCase()
+    result = result.filter(p => p.brand_name && p.brand_name.toLowerCase().includes(br))
   }
-}
 
-const deleteProduct = async (id) => {
-  if (!confirm('Tem certeza que deseja excluir este produto?')) return
-  try {
-    await api.delete(`/catalog/products/${id}/`)
-    await fetchProducts()
-  } catch (error) {
-    console.error(error)
+  if (filters.value.stock === 'in_stock') {
+    result = result.filter(p => p.stock > 0)
+  } else if (filters.value.stock === 'out_of_stock') {
+    result = result.filter(p => p.stock <= 0)
   }
-}
+
+  return result
+})
 
 onMounted(() => {
-  fetchProducts()
-  fetchDependencies()
+  productStore.fetchProducts({ page: 1 })
 })
 </script>
 
 <style scoped>
-.product-management-page {
+.admin-products-page {
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -321,22 +214,23 @@ onMounted(() => {
 }
 
 .btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   background-color: var(--primary-light);
   color: #ffffff;
   border: none;
   padding: 0.875rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 700;
+  border-radius: 0.75rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover {
   background-color: var(--primary-hover);
   transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 168, 89, 0.3);
 }
 
 .btn-primary svg {
@@ -344,71 +238,117 @@ onMounted(() => {
   height: 1.25rem;
 }
 
-.btn-primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.panel {
+.filters-card {
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 1rem;
-  overflow: hidden;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
   box-shadow: var(--shadow-sm);
 }
 
-.panel-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.search-box {
+.search-bar {
+  position: relative;
   display: flex;
-  gap: 0.5rem;
-  max-width: 400px;
+  align-items: center;
+  width: 100%;
 }
 
-.search-box input {
-  flex-grow: 1;
-  padding: 0.75rem 1rem;
+.search-bar svg {
+  position: absolute;
+  left: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-muted);
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
   border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   background-color: var(--bg-color);
   color: var(--text-main);
+  font-size: 0.95rem;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
-.search-box input:focus {
+.search-bar input:focus {
   border-color: var(--primary-light);
 }
 
-.search-btn {
+.filter-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .filter-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .filter-options {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.input-group select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.btn-clear {
   background-color: var(--surface-hover);
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  padding: 0 1.25rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
-.search-btn:hover {
+.btn-clear:hover {
   background-color: var(--border-color);
+}
+
+.table-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .table-responsive {
   overflow-x: auto;
+  width: 100%;
 }
 
-.admin-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  min-width: 800px;
 }
 
-.admin-table th {
+.data-table th {
   background-color: var(--surface-hover);
   padding: 1rem 1.5rem;
   font-size: 0.8rem;
@@ -418,48 +358,120 @@ onMounted(() => {
   border-bottom: 1px solid var(--border-color);
 }
 
-.admin-table td {
+.data-table td {
   padding: 1.25rem 1.5rem;
-  font-size: 0.95rem;
-  color: var(--text-main);
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
 
-.admin-table tr:hover td {
+.data-table tr:hover td {
   background-color: var(--surface-hover);
 }
 
-.admin-table tr:last-child td {
+.data-table tr:last-child td {
   border-bottom: none;
 }
 
-.product-name-cell {
+.empty-state {
+  text-align: center;
+  padding: 3rem !important;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.img-wrapper {
+  width: 48px;
+  height: 48px;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.25rem;
+}
+
+.img-wrapper img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.img-wrapper svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--border-color);
+}
+
+.product-info {
   display: flex;
   flex-direction: column;
 }
 
-.text-main { color: var(--text-main); }
-.text-muted { color: var(--text-muted); }
-.text-sm { font-size: 0.8rem; }
-.font-bold { font-weight: 700; }
-.text-center { text-align: center; }
-.py-4 { padding-top: 2rem; padding-bottom: 2rem; }
+.product-info .brand {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.product-info .name {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.codes-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.codes-cell .sku {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.codes-cell .oem {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background-color: var(--surface-hover);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+  margin-top: 0.25rem;
+  width: fit-content;
+}
+
+.price-cell {
+  font-weight: 800;
+  color: var(--primary-dark);
+  font-size: 1.05rem;
+}
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.8rem;
   font-weight: 700;
   display: inline-block;
+  white-space: nowrap;
 }
 
-.status-paid {
-  background-color: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+.status-active {
+  background-color: rgba(0, 168, 89, 0.15);
+  color: var(--primary-light);
 }
 
-.status-pending {
+.status-danger {
   background-color: rgba(239, 68, 68, 0.15);
   color: #ef4444;
 }
@@ -469,163 +481,34 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.action-btn {
+.btn-icon {
   background: none;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.action-btn svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.action-btn:hover {
-  background-color: var(--border-color);
-}
-
-.text-blue { color: #3b82f6; }
-.text-red { color: #ef4444; }
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-  padding: 1rem;
-}
-
-.modal-content {
-  background-color: var(--surface-color);
-  width: 100%;
-  max-width: 800px;
-  border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-}
-
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  color: var(--text-main);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: all 0.2s;
-}
-
-.close-btn:hover {
-  background-color: var(--surface-hover);
-  color: var(--text-main);
-}
-
-.close-btn svg {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.modal-body {
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-
-@media (min-width: 640px) {
-  .form-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
-
-.form-group label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  color: var(--text-main);
-  background-color: var(--bg-color);
-  outline: none;
-  transition: border-color 0.2s ease;
-  font-family: inherit;
-}
-
-.form-group input[type="file"] {
-  padding: 0.6rem;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  border-color: var(--primary-light);
-}
-
-.modal-footer {
-  padding: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.btn-secondary {
-  background-color: var(--surface-hover);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  padding: 0.875rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: var(--text-muted);
 }
 
-.btn-secondary:hover {
-  background-color: var(--border-color);
+.btn-icon.edit:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.btn-icon.delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.btn-icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 </style>
