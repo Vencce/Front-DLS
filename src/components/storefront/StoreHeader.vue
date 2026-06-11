@@ -3,11 +3,7 @@
     <div class="header-content">
       <div class="container header-grid">
         <router-link to="/" class="brand-logo">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo-icon">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="12" y1="8" x2="12" y2="16"></line>
-            <line x1="8" y1="12" x2="16" y2="12"></line>
-          </svg>
+          <img src="../../assets/logo.png" alt="DLS Auto Peças" class="logo-image" />
           <div class="brand-text">
             <span class="logo-dls">DLS</span>
             <span class="logo-auto">AUTO PEÇAS</span>
@@ -103,7 +99,6 @@ const handleSearch = () => {
 </script>
 
 <style scoped>
-/* CORES DO TEMA CLARO (PADRÃO) */
 .main-header {
   background-color: #008f4c;
   color: #ffffff;
@@ -113,15 +108,13 @@ const handleSearch = () => {
   overflow: hidden;
   transition: background-color 0.3s ease;
 }
+
 .bottom-nav {
   background-color: #008f4c;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-/* =========================================
-   CORES DO TEMA ESCURO (DARK MODE) 
-   ========================================= */
 .main-header.dark {
   background-color: var(--surface-color);
   color: var(--text-main);
@@ -153,7 +146,6 @@ const handleSearch = () => {
 .main-header.dark .search-btn {
   color: var(--primary-light);
 }
-/* ========================================= */
 
 .container {
   max-width: 1400px;
@@ -222,9 +214,10 @@ const handleSearch = () => {
   flex-shrink: 0;
 }
 
-.logo-icon {
-  width: 2rem;
-  height: 2rem;
+.logo-image {
+  height: 2.5rem;
+  width: auto;
+  object-fit: contain;
 }
 
 .brand-text {

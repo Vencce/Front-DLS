@@ -5,12 +5,13 @@ import CatalogView from '../views/Storefront/CatalogView.vue'
 import ProductDetailView from '../views/Storefront/ProductDetailView.vue'
 import CartView from '../views/Storefront/CartView.vue'
 import CheckoutView from '../views/Storefront/CheckoutView.vue'
-import AuthView from '../views/AuthView.vue'
+import AuthView from '../views/Storefront/AuthView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import DashboardView from '../views/Admin/DashboardView.vue'
 import ProductManagementView from '../views/Admin/ProductManagementView.vue'
 import OrderManagementView from '../views/Admin/OrderManagementView.vue'
 import CustomerManagementView from '../views/Admin/CustomerManagementView.vue'
+import SettingsView from '../views/Admin/SettingsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -31,6 +32,7 @@ const router = createRouter({
         { path: 'produtos', name: 'admin-products', component: ProductManagementView },
         { path: 'pedidos', name: 'admin-orders', component: OrderManagementView },
         { path: 'clientes', name: 'admin-customers', component: CustomerManagementView },
+        { path: 'configuracoes', name: 'admin-settings', component: SettingsView },
       ],
     },
   ],
