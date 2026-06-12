@@ -1,3 +1,54 @@
+<script setup>
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCartStore } from '../../stores/cartStore'
+import { useThemeStore } from '../../stores/themeStore'
+import { useAuthStore } from '../../stores/authStore'
+
+const router = useRouter()
+const cartStore = useCartStore()
+const themeStore = useThemeStore()
+const authStore = useAuthStore()
+
+const searchQuery = ref('')
+const isUserMenuOpen = ref(false)
+
+const userInitial = computed(() => {
+  return authStore.userName ? authStore.userName.charAt(0).toUpperCase() : 'U'
+})
+
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    router.push({ path: '/catalogo', query: { search: searchQuery.value } })
+    searchQuery.value = ''
+  }
+}
+
+const toggleUserMenu = () => {
+  isUserMenuOpen.value = !isUserMenuOpen.value
+}
+
+const handleLogout = () => {
+  authStore.logout()
+  isUserMenuOpen.value = false
+  router.push('/')
+}
+
+const closeMenu = (e) => {
+  if (!e.target.closest('.user-dropdown-container')) {
+    isUserMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeMenu)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenu)
+})
+</script>
+
 <template>
   <header class="main-header" :class="themeStore.theme">
     <div class="header-content">
@@ -25,15 +76,47 @@
         </div>
 
         <div class="user-actions">
-          <button class="action-item icon-only" @click="themeStore.toggleTheme()" title="Alternar Tema">
+          <button class="action-item icon-only" @click="themeStore.toggleTheme()">
             <svg v-if="themeStore.theme === 'light'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
           </button>
 
-          <router-link to="/admin/login" class="action-item login-item">
+          <router-link v-if="!authStore.isAuthenticated" to="/admin/login" class="action-item login-item">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
             <span>Entrar ou Cadastrar</span>
           </router-link>
+
+          <div v-else class="user-dropdown-container">
+            <button class="action-item user-btn" @click="toggleUserMenu">
+              <div class="user-avatar">{{ userInitial }}</div>
+              <span class="user-name-display hide-mobile">Olá, {{ authStore.userName.split(' ')[0] }}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="dropdown-icon hide-mobile"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            </button>
+
+            <div class="dropdown-menu" :class="{ 'is-active': isUserMenuOpen }">
+              <div class="dropdown-header">
+                <strong>{{ authStore.userName }}</strong>
+                <span>{{ authStore.user?.email }}</span>
+              </div>
+              <router-link v-if="authStore.isSuperuser" to="/admin" class="dropdown-item" @click="isUserMenuOpen = false">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Painel Admin
+              </router-link>
+              <router-link to="/minha-conta" class="dropdown-item" @click="isUserMenuOpen = false">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Minha Conta
+              </router-link>
+              <router-link to="/meus-pedidos" class="dropdown-item" @click="isUserMenuOpen = false">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                Meus Pedidos
+              </router-link>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item logout-action" @click="handleLogout">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                Sair
+              </button>
+            </div>
+          </div>
 
           <router-link to="/ajuda" class="action-item icon-only hide-mobile">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -79,25 +162,6 @@
   </header>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useCartStore } from '../../stores/cartStore'
-import { useThemeStore } from '../../stores/themeStore'
-
-const router = useRouter()
-const cartStore = useCartStore()
-const themeStore = useThemeStore()
-const searchQuery = ref('')
-
-const handleSearch = () => {
-  if (searchQuery.value.trim()) {
-    router.push({ path: '/catalogo', query: { search: searchQuery.value } })
-    searchQuery.value = ''
-  }
-}
-</script>
-
 <style scoped>
 .main-header {
   background-color: #008f4c;
@@ -105,8 +169,9 @@ const handleSearch = () => {
   display: flex;
   flex-direction: column;
   border-radius: 0 0 1.25rem 1.25rem;
-  overflow: hidden;
   transition: background-color 0.3s ease;
+  z-index: 40;
+  position: relative;
 }
 
 .bottom-nav {
@@ -121,10 +186,6 @@ const handleSearch = () => {
   border-bottom: 1px solid var(--border-color);
 }
 
-.main-header.dark .promo-banner {
-  background-color: var(--bg-color);
-}
-
 .main-header.dark .bottom-nav {
   background-color: var(--surface-color);
   border-top: 1px solid var(--border-color);
@@ -135,6 +196,15 @@ const handleSearch = () => {
 .main-header.dark .categories-btn,
 .main-header.dark .nav-link {
   color: var(--text-main);
+}
+
+.main-header.dark .user-btn {
+  border-color: var(--border-color);
+}
+
+.main-header.dark .user-avatar {
+  background-color: var(--bg-color);
+  color: var(--primary-light);
 }
 
 .main-header.dark .search-container input {
@@ -152,46 +222,6 @@ const handleSearch = () => {
   margin: 0 auto;
   padding: 0 1.5rem;
   width: 100%;
-}
-
-.promo-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  text-align: center;
-}
-
-.promo-brand {
-  font-weight: 900;
-  font-style: italic;
-  font-size: 1.1rem;
-}
-
-.promo-text {
-  font-weight: 500;
-}
-
-.promo-highlight {
-  font-weight: 800;
-  font-size: 0.95rem;
-}
-
-.promo-link {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  padding: 0.2rem 0.8rem;
-  border-radius: 999px;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 0.75rem;
-  transition: background-color 0.2s;
-  margin-left: 0.5rem;
-}
-
-.promo-link:hover {
-  background-color: rgba(255, 255, 255, 0.3);
 }
 
 .header-content {
@@ -307,6 +337,145 @@ const handleSearch = () => {
 .action-item svg {
   width: 1.5rem;
   height: 1.5rem;
+}
+
+.user-dropdown-container {
+  position: relative;
+}
+
+.user-btn {
+  border: 1px solid #ffffff;
+  border-radius: 2rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.3rem;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.user-name-display {
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.dropdown-icon {
+  width: 1rem !important;
+  height: 1rem !important;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-menu.is-active ~ .user-btn .dropdown-icon {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 15px);
+  right: 0;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  min-width: 220px;
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-menu.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-header strong {
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.dropdown-header span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-main);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-item svg {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  color: var(--text-muted);
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-color);
+  color: var(--primary-light);
+}
+
+.dropdown-item:hover svg {
+  color: var(--primary-light);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 0.25rem 0;
+}
+
+.logout-action {
+  color: #ef4444;
+}
+
+.logout-action svg {
+  color: #ef4444;
+}
+
+.logout-action:hover {
+  background-color: rgba(239, 68, 68, 0.05);
+  color: #ef4444;
 }
 
 .notification-wrapper {

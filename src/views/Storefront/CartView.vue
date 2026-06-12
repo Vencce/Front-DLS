@@ -1,3 +1,25 @@
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCartStore } from '../../stores/cartStore'
+
+const router = useRouter()
+const cartStore = useCartStore()
+const cep = ref('')
+
+const formatPrice = (value) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+const goToProduct = (id) => {
+  router.push(`/produto/${id}`)
+}
+
+const goToCheckout = () => {
+  router.push('/checkout')
+}
+</script>
+
 <template>
   <div class="cart-page">
     <div class="container">
@@ -27,18 +49,23 @@
 
               <div class="item-details">
                 <div class="item-header">
-                  <div>
-                    <span class="item-brand">{{ item.brand || 'DLS Auto Peças' }}</span>
+                  <div class="title-wrapper">
                     <h3 class="item-title" @click="goToProduct(item.id)">{{ item.name }}</h3>
+                    <span class="item-brand">{{ item.brand || 'DLS Auto Peças' }}</span>
                   </div>
-                  <button class="remove-btn" @click="cartStore.removeItem(item.id)" title="Remover item">
+                  <button class="remove-btn" @click="cartStore.removeItem(item.id)">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>
 
-                <div class="item-actions">
+                <div class="item-footer">
+                  <div class="item-price-wrap">
+                    <span class="item-price">{{ formatPrice(item.price * item.quantity) }}</span>
+                    <span class="item-unit-price" v-if="item.quantity > 1">{{ formatPrice(item.price) }} / un</span>
+                  </div>
+                  
                   <div class="qty-control">
                     <button class="qty-btn" @click="cartStore.updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
@@ -47,11 +74,6 @@
                     <button class="qty-btn" @click="cartStore.updateQuantity(item.id, item.quantity + 1)">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
                     </button>
-                  </div>
-                  
-                  <div class="item-price-wrap">
-                    <span class="item-price">{{ formatPrice(item.price * item.quantity) }}</span>
-                    <span class="item-unit-price" v-if="item.quantity > 1">{{ formatPrice(item.price) }} / un</span>
                   </div>
                 </div>
               </div>
@@ -64,10 +86,10 @@
             <h3>Resumo do Pedido</h3>
             
             <div class="shipping-calculator">
-              <label for="cep">Calcular Frete e Prazo</label>
+              <label for="cep">Calcular Frete</label>
               <div class="cep-input-group">
                 <input type="text" id="cep" v-model="cep" placeholder="00000-000" maxlength="9">
-                <button class="btn-calc">Calcular</button>
+                <button class="btn-calc">OK</button>
               </div>
               <span class="free-shipping-msg">Frete Grátis acima de R$ 500,00</span>
             </div>
@@ -105,28 +127,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useCartStore } from '../../stores/cartStore'
-
-const router = useRouter()
-const cartStore = useCartStore()
-const cep = ref('')
-
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-const goToProduct = (id) => {
-  router.push(`/produto/${id}`)
-}
-
-const goToCheckout = () => {
-  router.push('/checkout')
-}
-</script>
 
 <style scoped>
 .cart-page {
@@ -198,17 +198,19 @@ const goToCheckout = () => {
 .cart-items-list {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .cart-item {
   display: flex;
+  flex-direction: row;
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 1.25rem;
+  border-radius: 0.75rem;
+  padding: 1rem;
   gap: 1.25rem;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  align-items: stretch;
 }
 
 .cart-item:hover {
@@ -216,30 +218,21 @@ const goToCheckout = () => {
   border-color: var(--primary-light);
 }
 
-@media (max-width: 640px) {
-  .cart-item {
-    flex-direction: column;
-  }
-}
-
 .item-image {
-  width: 120px;
-  height: 120px;
-  background-color: var(--surface-hover);
-  border-radius: 0.75rem;
+  width: 110px;
+  height: 110px;
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
-@media (max-width: 640px) {
-  .item-image {
-    width: 100%;
-    height: 180px;
-  }
+.main-header.dark .item-image {
+  background-color: var(--surface-hover);
 }
 
 .item-image img {
@@ -274,49 +267,52 @@ const goToCheckout = () => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
-.item-brand {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  display: block;
-  margin-bottom: 0.25rem;
+.title-wrapper {
+  display: flex;
+  flex-direction: column;
+  padding-right: 1rem;
 }
 
 .item-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-main);
-  margin: 0;
+  margin: 0 0 0.25rem 0;
   line-height: 1.3;
   cursor: pointer;
   transition: color 0.2s ease;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .item-title:hover {
   color: var(--primary-light);
 }
 
+.item-brand {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
 .remove-btn {
   background: none;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
+  border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 0.4rem;
+  padding: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .remove-btn:hover {
-  background-color: #fef2f2;
-  border-color: #fecaca;
   color: #ef4444;
 }
 
@@ -325,21 +321,39 @@ const goToCheckout = () => {
   height: 1.25rem;
 }
 
-.item-actions {
+.item-footer {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 1rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.item-price-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.item-price {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.item-unit-price {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
 }
 
 .qty-control {
   display: flex;
   align-items: center;
-  background-color: var(--surface-hover);
+  background-color: var(--bg-color);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  overflow: hidden;
+  height: 36px;
 }
 
 .qty-btn {
@@ -347,7 +361,7 @@ const goToCheckout = () => {
   border: none;
   color: var(--text-main);
   width: 36px;
-  height: 36px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -365,80 +379,62 @@ const goToCheckout = () => {
 }
 
 .qty-btn svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 .qty-display {
   color: var(--text-main);
   font-weight: 700;
-  font-size: 1rem;
-  width: 40px;
+  font-size: 0.95rem;
+  min-width: 32px;
   text-align: center;
-}
-
-.item-price-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.item-price {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--primary-dark);
-}
-
-.item-unit-price {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
 }
 
 .summary-card {
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 1rem;
-  padding: 2rem;
+  padding: 1.5rem;
   position: sticky;
   top: 2rem;
 }
 
 .summary-card h3 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-main);
-  margin: 0 0 1.5rem 0;
-  padding-bottom: 1rem;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .shipping-calculator {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .shipping-calculator label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-main);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .cep-input-group {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .cep-input-group input {
   flex-grow: 1;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   background-color: var(--bg-color);
   color: var(--text-main);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s;
 }
@@ -452,8 +448,9 @@ const goToCheckout = () => {
   color: var(--text-main);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  padding: 0 1.25rem;
+  padding: 0 1rem;
   font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -463,7 +460,7 @@ const goToCheckout = () => {
 }
 
 .free-shipping-msg {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--primary-light);
   font-weight: 600;
 }
@@ -471,9 +468,9 @@ const goToCheckout = () => {
 .summary-lines {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -481,7 +478,7 @@ const goToCheckout = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--text-main);
 }
 
@@ -491,10 +488,10 @@ const goToCheckout = () => {
 }
 
 .summary-line.total {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  margin-top: 0.5rem;
-  padding-top: 1.5rem;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
   border-top: 1px dashed var(--border-color);
 }
 
@@ -503,9 +500,9 @@ const goToCheckout = () => {
   background-color: var(--primary-light);
   color: #ffffff;
   border: none;
-  padding: 1.25rem;
-  border-radius: 0.75rem;
-  font-size: 1.1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -523,20 +520,20 @@ const goToCheckout = () => {
 }
 
 .btn-primary svg, .btn-checkout svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .btn-continue {
   display: block;
   text-align: center;
   width: 100%;
-  padding: 1rem;
-  margin-top: 1rem;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
   color: var(--text-muted);
   text-decoration: none;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
 }
@@ -544,5 +541,120 @@ const goToCheckout = () => {
 .btn-continue:hover {
   color: var(--primary-light);
   background-color: var(--surface-hover);
+}
+
+@media (max-width: 640px) {
+  .cart-page {
+    padding: 1rem 0 2rem 0;
+  }
+
+  .container {
+    padding: 0 1rem;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .cart-layout {
+    gap: 1rem;
+  }
+
+  .cart-items-list {
+    gap: 0.75rem;
+  }
+
+  .cart-item {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .item-image {
+    width: 90px;
+    height: 90px;
+    padding: 0.5rem;
+  }
+
+  .item-header {
+    gap: 0.5rem;
+  }
+
+  .item-title {
+    font-size: 0.95rem;
+  }
+
+  .item-brand {
+    font-size: 0.75rem;
+  }
+
+  .remove-btn {
+    padding: 0.15rem;
+  }
+
+  .remove-btn svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .item-footer {
+    margin-top: 0.5rem;
+  }
+
+  .item-price {
+    font-size: 1.1rem;
+  }
+
+  .item-unit-price {
+    display: none;
+  }
+
+  .qty-control {
+    height: 32px;
+  }
+
+  .qty-btn {
+    width: 32px;
+  }
+
+  .qty-display {
+    font-size: 0.9rem;
+    min-width: 28px;
+  }
+
+  .summary-card {
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+  }
+
+  .summary-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .shipping-calculator {
+    margin-bottom: 1rem;
+  }
+
+  .summary-lines {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .summary-line {
+    font-size: 0.85rem;
+  }
+
+  .summary-line.total {
+    font-size: 1.1rem;
+    padding-top: 0.75rem;
+  }
+
+  .btn-checkout {
+    padding: 0.85rem;
+    font-size: 0.9rem;
+  }
 }
 </style>
