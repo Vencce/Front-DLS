@@ -1,3 +1,231 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import api from '../../services/api'
+
+const products = ref([])
+const categories = ref([])
+const brands = ref([])
+const isLoading = ref(true)
+const isSaving = ref(false)
+const showModal = ref(false)
+const isEditing = ref(false)
+
+const filters = ref({
+  search: '',
+  category: '',
+  brand: '',
+  stock: ''
+})
+
+const formData = ref({
+  id: null,
+  name: '',
+  sku: '',
+  oem_code: '',
+  price: '',
+  stock: 0,
+  description: '',
+  category: '',
+  brand: ''
+})
+
+const selectedFiles = ref([])
+const imagePreviews = ref([])
+
+const formatPrice = (value) => {
+  if (!value) return 'R$ 0,00'
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+const getProductImage = (product) => {
+  if (product.images && product.images.length > 0) {
+    const img = product.images.find(i => i.is_main) || product.images[0]
+    return img.image.startsWith('http') ? img.image : `https://dls-auto-pecas-api.onrender.com${img.image}`
+  }
+  return null
+}
+
+const fetchData = async () => {
+  isLoading.value = true
+  try {
+    const [prodRes, catRes, brandRes] = await Promise.all([
+      api.get('/products/'),
+      api.get('/categories/'),
+      api.get('/brands/')
+    ])
+    products.value = prodRes.data.results || prodRes.data
+    categories.value = catRes.data.results || catRes.data
+    brands.value = brandRes.data.results || brandRes.data
+  } catch (error) {
+    console.error(error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const filteredProducts = computed(() => {
+  let result = products.value
+
+  if (filters.value.search) {
+    const q = filters.value.search.toLowerCase()
+    result = result.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      (p.sku && p.sku.toLowerCase().includes(q)) || 
+      (p.oem_code && p.oem_code.toLowerCase().includes(q))
+    )
+  }
+
+  if (filters.value.category) {
+    const cat = filters.value.category.toString()
+    result = result.filter(p => p.category && p.category.toString() === cat)
+  }
+
+  if (filters.value.brand) {
+    const br = filters.value.brand.toString()
+    result = result.filter(p => p.brand && p.brand.toString() === br)
+  }
+
+  if (filters.value.stock === 'in_stock') {
+    result = result.filter(p => p.stock > 0)
+  } else if (filters.value.stock === 'out_of_stock') {
+    result = result.filter(p => p.stock <= 0)
+  }
+
+  return result
+})
+
+const clearFilters = () => {
+  filters.value = {
+    search: '',
+    category: '',
+    brand: '',
+    stock: ''
+  }
+}
+
+const handleFileUpload = (event) => {
+  const files = Array.from(event.target.files)
+  files.forEach(file => {
+    selectedFiles.value.push(file)
+    imagePreviews.value.push(URL.createObjectURL(file))
+  })
+  event.target.value = ''
+}
+
+const removeImage = (index) => {
+  selectedFiles.value.splice(index, 1)
+  imagePreviews.value.splice(index, 1)
+}
+
+const openModal = (product = null) => {
+  selectedFiles.value = []
+  imagePreviews.value = []
+  
+  if (product) {
+    isEditing.value = true
+    formData.value = {
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      oem_code: product.oem_code || '',
+      price: product.price,
+      stock: product.stock || 0,
+      description: product.description || '',
+      category: product.category || '',
+      brand: product.brand || ''
+    }
+  } else {
+    isEditing.value = false
+    formData.value = {
+      id: null,
+      name: '',
+      sku: '',
+      oem_code: '',
+      price: '',
+      stock: 0,
+      description: '',
+      category: '',
+      brand: ''
+    }
+  }
+  showModal.value = true
+}
+
+const closeModal = () => {
+  showModal.value = false
+}
+
+const saveProduct = async () => {
+  isSaving.value = true
+  try {
+    const data = new FormData()
+    
+    data.append('name', formData.value.name)
+    data.append('sku', formData.value.sku)
+    data.append('price', formData.value.price)
+    data.append('stock', formData.value.stock)
+
+    if (formData.value.oem_code) {
+      data.append('oem_code', formData.value.oem_code)
+    }
+    if (formData.value.description) {
+      data.append('description', formData.value.description)
+    }
+    if (formData.value.category) {
+      data.append('category', formData.value.category)
+    }
+    if (formData.value.brand) {
+      data.append('brand', formData.value.brand)
+    }
+
+    selectedFiles.value.forEach(file => {
+      data.append('uploaded_images', file)
+    })
+
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }
+
+    if (isEditing.value) {
+      await api.patch(`/products/${formData.value.id}/`, data, config)
+    } else {
+      await api.post('/products/', data, config)
+    }
+    
+    await fetchData()
+    closeModal()
+  } catch (error) {
+    let errorMsg = 'Erro ao salvar produto.'
+    if (error.response && error.response.data) {
+      console.error('Detalhes do Erro:', error.response.data)
+      const errData = error.response.data
+      const firstKey = Object.keys(errData)[0]
+      errorMsg = `Erro no campo "${firstKey}": ${errData[firstKey]}`
+    }
+    alert(errorMsg)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const deleteProduct = async (id) => {
+  if (confirm('Tem certeza que deseja excluir este produto?')) {
+    try {
+      await api.delete(`/products/${id}/`)
+      await fetchData()
+    } catch (error) {
+      alert('Erro ao excluir produto.')
+    }
+  }
+}
+
+onMounted(() => {
+  fetchData()
+})
+</script>
+
 <template>
   <div class="admin-products-page">
     <div class="page-header" v-animate>
@@ -5,7 +233,7 @@
         <h1 class="page-title">Gerenciamento de Produtos</h1>
         <p class="page-subtitle">Controle seu catálogo, estoque e preços.</p>
       </div>
-      <button class="btn-primary">
+      <button class="btn-primary" @click="openModal(null)">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -24,19 +252,13 @@
         <div class="input-group">
           <select v-model="filters.category">
             <option value="">Todas as Categorias</option>
-            <option value="injecao">Sistemas de Injeção</option>
-            <option value="motor">Componentes de Motor</option>
-            <option value="filtros">Filtros</option>
-            <option value="eletrica">Elétrica</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
           </select>
         </div>
         <div class="input-group">
           <select v-model="filters.brand">
             <option value="">Todas as Marcas</option>
-            <option value="bosch">Bosch</option>
-            <option value="delphi">Delphi</option>
-            <option value="cummins">Cummins</option>
-            <option value="master power">Master Power</option>
+            <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
           </select>
         </div>
         <div class="input-group">
@@ -51,7 +273,12 @@
     </div>
 
     <div class="table-card" v-animate>
-      <div class="table-responsive">
+      <div v-if="isLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Carregando produtos...</p>
+      </div>
+      
+      <div class="table-responsive" v-else>
         <table class="data-table">
           <thead>
             <tr>
@@ -65,20 +292,20 @@
           <tbody>
             <tr v-if="filteredProducts.length === 0">
               <td colspan="5" class="empty-state">
-                Nenhum produto encontrado com os filtros selecionados.
+                Nenhum produto encontrado.
               </td>
             </tr>
             <tr v-for="product in filteredProducts" :key="product.id">
               <td>
                 <div class="product-cell">
                   <div class="img-wrapper">
-                    <img v-if="product.images && product.images.length > 0" :src="product.images[0].image" :alt="product.name">
+                    <img v-if="getProductImage(product)" :src="getProductImage(product)" :alt="product.name">
                     <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
                   <div class="product-info">
-                    <span class="brand">{{ product.brand_name || 'DLS Auto Peças' }}</span>
+                    <span class="brand">{{ product.brand_name || 'Sem Marca' }}</span>
                     <span class="name">{{ product.name }}</span>
                   </div>
                 </div>
@@ -97,10 +324,10 @@
               </td>
               <td>
                 <div class="action-buttons">
-                  <button class="btn-icon edit" title="Editar">
+                  <button class="btn-icon edit" title="Editar" @click="openModal(product)">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
-                  <button class="btn-icon delete" title="Excluir">
+                  <button class="btn-icon delete" title="Excluir" @click="deleteProduct(product.id)">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
@@ -110,73 +337,100 @@
         </table>
       </div>
     </div>
+
+    <div class="modal-overlay" v-if="showModal" @click.self="closeModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>{{ isEditing ? 'Editar Produto' : 'Novo Produto' }}</h2>
+          <button class="close-modal" @click="closeModal">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <form @submit.prevent="saveProduct" class="product-form">
+            <div class="form-group full-width">
+              <label>Nome da Peça</label>
+              <input type="text" v-model="formData.name" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>SKU (Código Interno)</label>
+                <input type="text" v-model="formData.sku" required>
+              </div>
+              <div class="form-group">
+                <label>Código OEM</label>
+                <input type="text" v-model="formData.oem_code">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Preço (R$)</label>
+                <input type="number" step="0.01" v-model="formData.price" required>
+              </div>
+              <div class="form-group">
+                <label>Estoque</label>
+                <input type="number" v-model="formData.stock" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Categoria</label>
+                <select v-model="formData.category">
+                  <option value="" disabled>Selecione...</option>
+                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Marca</label>
+                <select v-model="formData.brand">
+                  <option value="" disabled>Selecione...</option>
+                  <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Imagens do Produto</label>
+              <div class="file-upload-box">
+                <input type="file" multiple accept="image/*" @change="handleFileUpload" class="file-input">
+                <div class="upload-placeholder" v-if="imagePreviews.length === 0">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  <span>Clique para selecionar várias imagens</span>
+                </div>
+                <div class="image-previews" v-else>
+                  <div class="preview-item" v-for="(img, idx) in imagePreviews" :key="idx">
+                    <img :src="img" alt="Preview">
+                    <button type="button" class="remove-img" @click="removeImage(idx)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Descrição</label>
+              <textarea v-model="formData.description" rows="3"></textarea>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-cancel" @click="closeModal" :disabled="isSaving">Cancelar</button>
+              <button type="submit" class="btn-save" :disabled="isSaving">
+                {{ isSaving ? 'Salvando...' : 'Salvar Produto' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
-
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useProductStore } from '../../stores/productStore'
-
-const productStore = useProductStore()
-
-const filters = ref({
-  search: '',
-  category: '',
-  brand: '',
-  stock: ''
-})
-
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-const clearFilters = () => {
-  filters.value = {
-    search: '',
-    category: '',
-    brand: '',
-    stock: ''
-  }
-}
-
-const filteredProducts = computed(() => {
-  let result = productStore.products
-
-  if (filters.value.search) {
-    const q = filters.value.search.toLowerCase()
-    result = result.filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      (p.sku && p.sku.toLowerCase().includes(q)) || 
-      (p.oem_code && p.oem_code.toLowerCase().includes(q))
-    )
-  }
-
-  if (filters.value.category) {
-    const cat = filters.value.category.toLowerCase()
-    result = result.filter(p => 
-      (p.category_name && p.category_name.toLowerCase().includes(cat)) || 
-      String(p.category) === cat
-    )
-  }
-
-  if (filters.value.brand) {
-    const br = filters.value.brand.toLowerCase()
-    result = result.filter(p => p.brand_name && p.brand_name.toLowerCase().includes(br))
-  }
-
-  if (filters.value.stock === 'in_stock') {
-    result = result.filter(p => p.stock > 0)
-  } else if (filters.value.stock === 'out_of_stock') {
-    result = result.filter(p => p.stock <= 0)
-  }
-
-  return result
-})
-
-onMounted(() => {
-  productStore.fetchProducts({ page: 1 })
-})
-</script>
 
 <style scoped>
 .admin-products-page {
@@ -336,6 +590,31 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.loading-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-light);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .table-responsive {
   overflow-x: auto;
   width: 100%;
@@ -370,13 +649,6 @@ onMounted(() => {
 
 .data-table tr:last-child td {
   border-bottom: none;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem !important;
-  color: var(--text-muted);
-  font-weight: 600;
 }
 
 .product-cell {
@@ -510,5 +782,252 @@ onMounted(() => {
 .btn-icon svg {
   width: 1.1rem;
   height: 1.1rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-content {
+  background-color: var(--surface-color);
+  width: 100%;
+  max-width: 650px;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.close-modal:hover {
+  color: #ef4444;
+}
+
+.close-modal svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--primary-light);
+}
+
+.file-upload-box {
+  position: relative;
+  border: 2px dashed var(--border-color);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background-color: var(--bg-color);
+  transition: border-color 0.2s;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-box:hover {
+  border-color: var(--primary-light);
+}
+
+.file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-muted);
+  gap: 0.5rem;
+}
+
+.upload-placeholder svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.upload-placeholder span {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.image-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+  z-index: 20;
+}
+
+.preview-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-img {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 30;
+}
+
+.remove-img svg {
+  width: 12px;
+  height: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-cancel, .btn-save {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.btn-cancel:hover {
+  background-color: var(--surface-hover);
+}
+
+.btn-save {
+  background-color: var(--primary-light);
+  border: none;
+  color: #ffffff;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.btn-save:disabled, .btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
 }
 </style>

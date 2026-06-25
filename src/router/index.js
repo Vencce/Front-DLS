@@ -18,7 +18,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/catalogo', name: 'catalog', component: CatalogView },
-    { path: '/produto/:slug', name: 'product', component: ProductDetailView },
+    { path: '/produto/:id', name: 'product', component: ProductDetailView },
     { path: '/carrinho', name: 'cart', component: CartView },
     { path: '/checkout', name: 'checkout', component: CheckoutView },
     { path: '/admin/login', name: 'login', component: AuthView },

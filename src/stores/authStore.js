@@ -4,7 +4,7 @@ import api from '../services/api'
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    token: localStorage.getItem('token') || null,
+    token: localStorage.getItem('access_token') || null,
     loading: false,
     error: null
   }),
@@ -26,7 +26,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.post('/auth/token/', { username, password })
         this.token = response.data.access
-        localStorage.setItem('token', this.token)
+        localStorage.setItem('access_token', response.data.access)
+        localStorage.setItem('refresh_token', response.data.refresh)
         api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
         await this.fetchUser()
         return true
@@ -41,7 +42,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        await api.post('/catalog/auth/register/', { first_name: name, username, email, password })
+        await api.post('/auth/register/', { first_name: name, username, email, password })
         return await this.login(username, password)
       } catch (err) {
         this.error = 'Erro ao criar conta. O usuário ou e-mail já estão em uso.'
@@ -52,7 +53,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async fetchUser() {
       try {
-        const response = await api.get('/catalog/auth/me/')
+        const response = await api.get('/auth/me/')
         this.user = response.data
       } catch (err) {
         this.logout()
@@ -61,7 +62,8 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.user = null
       this.token = null
-      localStorage.removeItem('token')
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
       delete api.defaults.headers.common['Authorization']
     }
   }

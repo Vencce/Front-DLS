@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
-  timeout: 10000,
+  baseURL: 'https://dls-auto-pecas-api.onrender.com/api/v1',
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -35,7 +35,7 @@ api.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const response = await axios.post('http://localhost:8000/api/v1/auth/token/refresh/', {
+          const response = await axios.post('https://dls-auto-pecas-api.onrender.com/api/v1/auth/token/refresh/', {
             refresh: refreshToken
           })
           
