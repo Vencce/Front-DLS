@@ -18,7 +18,7 @@
       <div class="product-layout">
         <div class="product-gallery">
           <div class="main-image">
-            <img :src="activeImage" :alt="product.name" v-if="activeImage">
+            <img :src="resolveImage(activeImage)" :alt="product.name" v-if="activeImage">
             <div v-else class="image-placeholder">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -34,7 +34,7 @@
               :class="{ active: activeImage === img.image }"
               @click="activeImage = img.image"
             >
-              <img :src="img.image" :alt="product.name">
+              <img :src="resolveImage(img.image)" :alt="product.name">
             </button>
           </div>
         </div>
@@ -161,13 +161,19 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
+const resolveImage = (imgPath) => {
+  if (!imgPath) return ''
+  return imgPath.startsWith('http') ? imgPath : `https://dls-auto-pecas-api.onrender.com${imgPath}`
+}
+
 const fetchProductDetails = async (id) => {
   loading.value = true
   try {
-    const response = await api.get(`/catalog/products/${id}/`)
+    const response = await api.get(`/products/${id}/`)
     product.value = response.data
     if (product.value.images && product.value.images.length > 0) {
-      activeImage.value = product.value.images[0].image
+      const mainImg = product.value.images.find(i => i.is_main) || product.value.images[0]
+      activeImage.value = mainImg.image
     }
   } catch (error) {
     console.error('Erro ao carregar produto:', error)
@@ -184,23 +190,21 @@ const handleAddToCart = () => {
     id: product.value.id,
     name: product.value.name,
     price: parseFloat(product.value.price),
-    brand: product.value.brand_name,
-    image: activeImage.value,
+    brand: product.value.brand_name || 'DLS Auto Peças',
+    image: resolveImage(activeImage.value),
     quantity: qty.value
   })
-  
-  router.push('/carrinho')
 }
 
 onMounted(() => {
-  if (route.params.slug) {
-    fetchProductDetails(route.params.slug)
+  if (route.params.id) {
+    fetchProductDetails(route.params.id)
   }
 })
 
-watch(() => route.params.slug, (newSlug) => {
-  if (newSlug) {
-    fetchProductDetails(newSlug)
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    fetchProductDetails(newId)
   }
 })
 </script>
