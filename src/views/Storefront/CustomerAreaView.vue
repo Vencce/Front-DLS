@@ -1,109 +1,219 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/authStore'
+import api from '../../services/api'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const activeTab = ref('orders')
+const orders = ref([])
+const isLoading = ref(true)
+
+const fetchOrders = async () => {
+  isLoading.value = true
+  try {
+    const response = await api.get('/orders/')
+    orders.value = response.data.results || response.data
+  } catch (error) {
+    console.error(error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const logout = () => {
+  authStore.logout()
+  router.push('/login')
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  return new Intl.DateTimeFormat('pt-BR', { 
+    day: '2-digit', month: '2-digit', year: 'numeric', 
+    hour: '2-digit', minute: '2-digit' 
+  }).format(new Date(dateString))
+}
+
+const formatPrice = (value) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+const getStatusClass = (status) => {
+  const map = {
+    'pending': 'status-pending',
+    'paid': 'status-paid',
+    'shipped': 'status-shipped',
+    'delivered': 'status-delivered',
+    'canceled': 'status-canceled'
+  }
+  return map[status] || 'status-pending'
+}
+
+const getStatusName = (status) => {
+  const map = {
+    'pending': 'Pendente',
+    'paid': 'Pago',
+    'shipped': 'Enviado',
+    'delivered': 'Entregue',
+    'canceled': 'Cancelado'
+  }
+  return map[status] || status
+}
+
+onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+  await fetchOrders()
+})
+</script>
+
 <template>
   <div class="customer-area-page">
-    <div class="container">
-      <div class="header-section">
-        <h1 class="page-title">Minha Conta</h1>
-        <p class="welcome-text">Bem-vindo ao seu painel de controle.</p>
+    <div class="page-header">
+      <div class="container">
+        <h1>Minha Conta</h1>
+        <p>Acompanhe seus pedidos e gerencie suas informações</p>
       </div>
+    </div>
 
-      <div class="account-layout">
-        <aside class="account-sidebar">
-          <nav class="account-nav">
-            <a href="#" class="nav-item active">Meus Pedidos</a>
-            <a href="#" class="nav-item">Meus Dados</a>
-            <a href="#" class="nav-item">Endereços</a>
-            <a href="#" class="nav-item logout">Sair</a>
-          </nav>
-        </aside>
+    <div class="container layout-grid">
+      <aside class="sidebar">
+        <div class="user-profile-card">
+          <div class="avatar">
+            {{ authStore.userName.charAt(0).toUpperCase() }}
+          </div>
+          <div class="user-info">
+            <h3>{{ authStore.userName }}</h3>
+            <p>{{ authStore.user?.email }}</p>
+          </div>
+        </div>
 
-        <main class="account-content">
+        <nav class="sidebar-nav">
+          <button 
+            :class="{ active: activeTab === 'orders' }" 
+            @click="activeTab = 'orders'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            Meus Pedidos
+          </button>
+          
+          <button 
+            :class="{ active: activeTab === 'profile' }" 
+            @click="activeTab = 'profile'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            Meus Dados
+          </button>
+
+          <button class="btn-logout" @click="logout">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            Sair da Conta
+          </button>
+        </nav>
+      </aside>
+
+      <main class="content-area">
+        <div v-if="activeTab === 'orders'" class="orders-section">
           <h2>Histórico de Pedidos</h2>
+          
+          <div v-if="isLoading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Buscando seus pedidos...</p>
+          </div>
 
-          <div class="orders-list">
-            <div class="order-card">
-              <div class="order-header">
-                <div class="order-info">
-                  <span class="order-number">Pedido #10045</span>
-                  <span class="order-date">Realizado em 15/05/2026</span>
-                </div>
-                <span class="order-status status-transit">Em Transporte</span>
-              </div>
-              
-              <div class="order-body">
-                <div class="order-items">
-                  <div class="item-line">
-                    <span class="item-qty">1x</span>
-                    <span class="item-name">Bico Injetor Diesel Common Rail Bosch</span>
-                  </div>
-                  <div class="item-line">
-                    <span class="item-qty">2x</span>
-                    <span class="item-name">Filtro de Combustível Separador Scania</span>
-                  </div>
-                </div>
-                
-                <div class="order-summary">
-                  <div class="summary-line">
-                    <span>Total:</span>
-                    <span class="total-value">R$ 1.700,00</span>
-                  </div>
-                  <div class="summary-line tracking-line">
-                    <span>Rastreio (Vapt):</span>
-                    <a href="#" class="tracking-link">VAPT987654321BR</a>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="order-footer">
-                <button class="btn-action">Ver Detalhes</button>
-                <button class="btn-action btn-outline">Comprar Novamente</button>
-              </div>
-            </div>
+          <div v-else-if="orders.length === 0" class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            <h3>Você ainda não fez nenhum pedido</h3>
+            <p>Navegue pelo nosso catálogo e encontre as melhores peças.</p>
+            <button class="btn-primary" @click="router.push('/catalogo')">Ver Catálogo</button>
+          </div>
 
-            <div class="order-card">
+          <div v-else class="orders-list">
+            <div class="order-card" v-for="order in orders" :key="order.id">
               <div class="order-header">
-                <div class="order-info">
-                  <span class="order-number">Pedido #09882</span>
-                  <span class="order-date">Realizado em 02/04/2026</span>
+                <div class="order-id">
+                  <span>Pedido</span>
+                  <strong>#{{ order.id.toString().padStart(6, '0') }}</strong>
                 </div>
-                <span class="order-status status-delivered">Entregue</span>
-              </div>
-              
-              <div class="order-body">
-                <div class="order-items">
-                  <div class="item-line">
-                    <span class="item-qty">1x</span>
-                    <span class="item-name">Bomba de Alta Pressão Cummins</span>
-                  </div>
+                <div class="order-date">
+                  <span>Data da Compra</span>
+                  <strong>{{ formatDate(order.created_at) }}</strong>
                 </div>
-                
-                <div class="order-summary">
-                  <div class="summary-line">
-                    <span>Total:</span>
-                    <span class="total-value">R$ 3.245,90</span>
-                  </div>
+                <div class="order-total">
+                  <span>Valor Total</span>
+                  <strong>{{ formatPrice(order.total_amount) }}</strong>
+                </div>
+                <div class="order-status">
+                  <span class="badge" :class="getStatusClass(order.status)">
+                    {{ getStatusName(order.status) }}
+                  </span>
                 </div>
               </div>
               
-              <div class="order-footer">
-                <button class="btn-action">Ver Detalhes</button>
-                <button class="btn-action btn-outline">Comprar Novamente</button>
+              <div class="order-items" v-if="order.items && order.items.length > 0">
+                <div class="item-row" v-for="item in order.items" :key="item.id">
+                  <div class="item-name">{{ item.product_name }}</div>
+                  <div class="item-qty">{{ item.quantity }}x</div>
+                  <div class="item-price">{{ formatPrice(item.price) }}</div>
+                </div>
               </div>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+
+        <div v-if="activeTab === 'profile'" class="profile-section">
+          <h2>Meus Dados</h2>
+          <div class="profile-card">
+            <div class="form-group">
+              <label>Nome Completo</label>
+              <input type="text" :value="authStore.userName" disabled>
+            </div>
+            <div class="form-group">
+              <label>E-mail</label>
+              <input type="email" :value="authStore.user?.email" disabled>
+            </div>
+            <div class="form-group">
+              <label>Nome de Usuário</label>
+              <input type="text" :value="authStore.user?.username" disabled>
+            </div>
+            <p class="help-text">Para alterar seus dados de cadastro, por favor entre em contato com o suporte.</p>
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 </template>
 
-<script setup>
-</script>
-
 <style scoped>
 .customer-area-page {
-  background-color: #f9fafb;
+  background-color: var(--bg-color);
   min-height: 100vh;
-  padding: 4rem 0;
+  padding-bottom: 5rem;
+}
+
+.page-header {
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: 3rem 0;
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.page-header h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 0.5rem 0;
+}
+
+.page-header p {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin: 0;
 }
 
 .container {
@@ -112,124 +222,187 @@
   padding: 0 1.5rem;
 }
 
-.header-section {
-  margin-bottom: 3rem;
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
 }
 
-.page-title {
-  font-size: 2.25rem;
-  color: #004d28;
-  margin: 0 0 0.5rem 0;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+@media (min-width: 992px) {
+  .layout-grid {
+    grid-template-columns: 300px 1fr;
+  }
 }
 
-.welcome-text {
-  color: #6b7280;
-  font-size: 1.125rem;
-  margin: 0;
-  font-weight: 500;
-}
-
-.account-layout {
+.sidebar {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 1.5rem;
 }
 
-@media (min-width: 768px) {
-  .account-layout {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-}
-
-.account-sidebar {
-  width: 100%;
-  background-color: #ffffff;
-  border: none;
+.user-profile-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
   border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-}
-
-@media (min-width: 768px) {
-  .account-sidebar {
-    width: 280px;
-    flex-shrink: 0;
-  }
-}
-
-.account-nav {
+  padding: 1.5rem;
   display: flex;
-  flex-direction: row;
-  overflow-x: auto;
-  white-space: nowrap;
+  align-items: center;
+  gap: 1rem;
 }
 
-@media (min-width: 768px) {
-  .account-nav {
-    flex-direction: column;
-    overflow-x: visible;
-  }
+.avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  background-color: var(--primary-light);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
 }
 
-.nav-item {
-  padding: 1.25rem 1.5rem;
-  text-decoration: none;
-  color: #4b5563;
+.user-info h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.user-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.sidebar-nav {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-nav button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  color: var(--text-main);
+  font-size: 0.95rem;
   font-weight: 600;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-@media (min-width: 768px) {
-  .nav-item {
-    border-bottom: 1px solid #f3f4f6;
-    border-left: 4px solid transparent;
-  }
-  
-  .nav-item:last-child {
-    border-bottom: none;
-  }
+.sidebar-nav button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-muted);
+  transition: color 0.2s;
 }
 
-.nav-item:hover {
-  background-color: #f9fafb;
-  color: #111827;
+.sidebar-nav button:hover {
+  background-color: var(--surface-hover);
 }
 
-.nav-item.active {
-  color: #00a859;
-  border-bottom-color: #00a859;
+.sidebar-nav button.active {
+  background-color: var(--primary-light-bg);
+  color: var(--primary-dark);
 }
 
-@media (min-width: 768px) {
-  .nav-item.active {
-    border-bottom-color: #f3f4f6;
-    border-left-color: #00a859;
-    background-color: #e6f4ea;
-  }
+.sidebar-nav button.active svg {
+  color: var(--primary-light);
 }
 
-.nav-item.logout {
+.sidebar-nav .btn-logout {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0;
   color: #ef4444;
 }
 
-.nav-item.logout:hover {
+.sidebar-nav .btn-logout:hover {
   background-color: #fef2f2;
 }
 
-.account-content {
-  flex-grow: 1;
-  width: 100%;
+.sidebar-nav .btn-logout svg {
+  color: #ef4444;
 }
 
-.account-content h2 {
+.content-area h2 {
   font-size: 1.5rem;
-  color: #004d28;
+  font-weight: 800;
+  color: var(--text-main);
   margin: 0 0 1.5rem 0;
+}
+
+.loading-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  text-align: center;
+  background-color: var(--surface-color);
+  border-radius: 1rem;
+  border: 1px solid var(--border-color);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-light);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state svg {
+  width: 4rem;
+  height: 4rem;
+  color: var(--border-color);
+  margin-bottom: 1.5rem;
+}
+
+.empty-state h3 {
+  color: var(--text-main);
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-state p {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+.btn-primary {
+  background-color: var(--primary-light);
+  color: #ffffff;
+  border: none;
+  padding: 0.85rem 1.5rem;
+  border-radius: 0.5rem;
   font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
 }
 
 .orders-list {
@@ -239,173 +412,139 @@
 }
 
 .order-card {
-  background-color: #ffffff;
-  border: none;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
   border-radius: 1rem;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 
 .order-header {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
+  background-color: var(--surface-hover);
   padding: 1.5rem;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #f3f4f6;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
 @media (min-width: 640px) {
   .order-header {
-    flex-direction: row;
-    align-items: center;
-    gap: 0;
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-.order-info {
+.order-header > div {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
 }
 
-.order-number {
-  font-weight: 800;
-  color: #111827;
-  font-size: 1.125rem;
+.order-header span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
-.order-date {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
-}
-
-.order-status {
-  padding: 0.375rem 1rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
+.order-header strong {
+  font-size: 1rem;
+  color: var(--text-main);
   font-weight: 700;
 }
 
-.status-transit {
-  background-color: #fef3c7;
-  color: #b45309;
+.badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-block;
+  text-align: center;
 }
 
-.status-delivered {
-  background-color: #e6f4ea;
-  color: #00a859;
-}
-
-.order-body {
-  padding: 1.5rem;
-}
+.status-pending { background-color: #fef9c3; color: #a16207; }
+.status-paid { background-color: #dbeafe; color: #1d4ed8; }
+.status-shipped { background-color: #e0e7ff; color: #4338ca; }
+.status-delivered { background-color: #d1fae5; color: #047857; }
+.status-canceled { background-color: #fee2e2; color: #b91c1c; }
 
 .order-items {
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
 }
 
-.item-line {
+.item-row {
   display: flex;
+  align-items: center;
   gap: 1rem;
-  font-size: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.item-qty {
-  font-weight: 800;
-  color: #00a859;
-  min-width: 25px;
+.item-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .item-name {
-  color: #111827;
-  font-weight: 500;
+  flex-grow: 1;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
-.order-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.item-qty {
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
-.summary-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1.05rem;
-}
-
-.total-value {
-  font-weight: 800;
-  color: #111827;
-  font-size: 1.25rem;
-}
-
-.tracking-line {
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  color: #4b5563;
-}
-
-.tracking-link {
-  color: #00a859;
-  text-decoration: none;
+.item-price {
   font-weight: 700;
+  color: var(--text-main);
 }
 
-.tracking-link:hover {
-  text-decoration: underline;
-}
-
-.order-footer {
+.profile-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #f3f4f6;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
-@media (min-width: 640px) {
-  .order-footer {
-    flex-direction: row;
-    justify-content: flex-end;
-  }
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.btn-action {
-  padding: 0.875rem 1.5rem;
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.form-group input {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  font-weight: 700;
+  background-color: var(--surface-hover);
+  color: var(--text-main);
   font-size: 1rem;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s ease;
-  border: none;
-  background-color: #004d28;
-  color: #ffffff;
+  outline: none;
 }
 
-.btn-action:hover {
-  background-color: #00361c;
+.form-group input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
 }
 
-.btn-outline {
-  background-color: transparent;
-  border: 2px solid #d1d5db;
-  color: #4b5563;
-}
-
-.btn-outline:hover {
-  background-color: #f3f4f6;
-  border-color: #9ca3af;
-  color: #111827;
+.help-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
 }
 </style>
