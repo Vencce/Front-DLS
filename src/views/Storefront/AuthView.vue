@@ -170,12 +170,11 @@ const handleSubmit = async () => {
 
 <style scoped>
 .auth-layout {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 4rem 1rem;
   background-color: var(--bg-color);
-  padding: 1rem;
 }
 
 .auth-card {
@@ -193,7 +192,7 @@ const handleSubmit = async () => {
 @media (min-width: 992px) {
   .auth-card {
     flex-direction: row;
-    max-height: 90vh;
+    min-height: 550px;
   }
 }
 
@@ -323,7 +322,6 @@ const handleSubmit = async () => {
   flex-direction: column;
   justify-content: center;
   flex-grow: 1;
-  overflow-y: auto;
 }
 
 @media (min-width: 992px) {
