@@ -14,6 +14,9 @@ const filters = ref({
   brand: ''
 })
 
+const isCategoryOpen = ref(true)
+const isBrandOpen = ref(true)
+
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
@@ -96,45 +99,60 @@ onMounted(async () => {
     <div class="container layout-grid">
       <aside class="filters-sidebar">
         <div class="filter-group">
-          <h3>Buscar Peça</h3>
           <div class="search-box">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input type="text" v-model="filters.search" placeholder="Nome, SKU ou OEM...">
+            <input type="text" v-model="filters.search" placeholder="Buscar por Nome, SKU ou OEM...">
           </div>
         </div>
 
         <div class="filter-group">
-          <h3>Categorias</h3>
-          <ul class="filter-list">
-            <li>
-              <button :class="{ active: filters.category === '' }" @click="filters.category = ''">
-                Todas as Categorias
-              </button>
-            </li>
-            <li v-for="cat in productStore.categories" :key="cat.id">
-              <button :class="{ active: filters.category === cat.id }" @click="filters.category = cat.id">
-                {{ cat.name }}
-              </button>
-            </li>
-          </ul>
+          <button class="filter-toggle" @click="isCategoryOpen = !isCategoryOpen">
+            <h3>Categorias</h3>
+            <svg :class="{ 'rotate-180': isCategoryOpen }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          <div class="filter-content" v-show="isCategoryOpen">
+            <ul class="filter-list scrollable-list">
+              <li>
+                <button :class="{ active: filters.category === '' }" @click="filters.category = ''">
+                  Todas as Categorias
+                </button>
+              </li>
+              <li v-for="cat in productStore.categories" :key="cat.id">
+                <button :class="{ active: filters.category === cat.id }" @click="filters.category = cat.id">
+                  {{ cat.name }}
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div class="filter-group">
-          <h3>Marcas</h3>
-          <ul class="filter-list">
-            <li>
-              <button :class="{ active: filters.brand === '' }" @click="filters.brand = ''">
-                Todas as Marcas
-              </button>
-            </li>
-            <li v-for="brand in productStore.brands" :key="brand.id">
-              <button :class="{ active: filters.brand === brand.id }" @click="filters.brand = brand.id">
-                {{ brand.name }}
-              </button>
-            </li>
-          </ul>
+          <button class="filter-toggle" @click="isBrandOpen = !isBrandOpen">
+            <h3>Marcas</h3>
+            <svg :class="{ 'rotate-180': isBrandOpen }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div class="filter-content" v-show="isBrandOpen">
+            <ul class="filter-list scrollable-list">
+              <li>
+                <button :class="{ active: filters.brand === '' }" @click="filters.brand = ''">
+                  Todas as Marcas
+                </button>
+              </li>
+              <li v-for="brand in productStore.brands" :key="brand.id">
+                <button :class="{ active: filters.brand === brand.id }" @click="filters.brand = brand.id">
+                  {{ brand.name }}
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <button class="btn-clear" @click="clearFilters" v-if="filters.search || filters.category || filters.brand">
@@ -253,20 +271,48 @@ onMounted(async () => {
   top: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
-.filter-group h3 {
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0 0 1rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.filter-toggle h3 {
   font-size: 1.1rem;
   font-weight: 800;
   color: var(--text-main);
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+}
+
+.filter-toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-muted);
+  transition: transform 0.3s ease;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
 }
 
 .search-box {
   position: relative;
+  margin-bottom: 0.5rem;
 }
 
 .search-box input {
@@ -296,13 +342,38 @@ onMounted(async () => {
   color: var(--text-muted);
 }
 
+.filter-content {
+  padding-top: 0.5rem;
+}
+
+.scrollable-list {
+  max-height: 250px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 0.5rem;
+}
+
+.scrollable-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollable-list::-webkit-scrollbar-track {
+  background: var(--bg-color);
+  border-radius: 4px;
+}
+
+.scrollable-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
 .filter-list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .filter-list button {
@@ -310,7 +381,7 @@ onMounted(async () => {
   text-align: left;
   background: none;
   border: none;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
   border-radius: 0.5rem;
   color: var(--text-main);
   font-size: 0.95rem;
@@ -325,8 +396,8 @@ onMounted(async () => {
 }
 
 .filter-list button.active {
-  background-color: var(--primary-light);
-  color: #ffffff;
+  background-color: var(--primary-light-bg);
+  color: var(--primary-dark);
 }
 
 .btn-clear {
@@ -338,6 +409,7 @@ onMounted(async () => {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
+  margin-top: 1rem;
 }
 
 .btn-clear:hover {
