@@ -1,3 +1,64 @@
+          <script setup>
+          import { ref, onMounted } from 'vue'
+          import { useProductStore } from '../../stores/productStore'
+          import api from '../../services/api'
+          
+          const productStore = useProductStore()
+          
+          // Estados reativos
+          const loading = ref(true)
+          const stats = ref({
+            faturamento_total: 0,
+            pedidos_realizados: 0,
+            novos_clientes: 0
+          })
+          const recentOrders = ref([])
+          const topProducts = ref([])
+          
+          // Funções utilitárias
+          const formatPrice = (value) => {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
+          }
+          
+          const formatDate = (dateString) => {
+            if (!dateString) return ''
+            const date = new Date(dateString)
+            return new Intl.DateTimeFormat('pt-BR', {
+              day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+            }).format(date)
+          }
+          
+          const getStatusClass = (status) => {
+            const statusLower = String(status).toLowerCase()
+            if (statusLower.includes('pago') || statusLower.includes('concluido')) return 'status-paid'
+            if (statusLower.includes('enviado')) return 'status-shipped'
+            return 'status-pending' // Aguardando, cancelado, etc.
+          }
+          
+          // Chamada à API
+          const fetchDashboardData = async () => {
+            try {
+              loading.value = true
+              // Substitua '/dashboard/resumo/' pela URL exata configurada no seu arquivo urls.py do Django
+              const response = await api.get('/dashboard/resumo/')
+              
+              // Assumindo que o Django retorna os dados no formato snake_case
+              stats.value = response.data.estatisticas || { faturamento_total: 0, pedidos_realizados: 0, novos_clientes: 0 }
+              recentOrders.value = response.data.ultimos_pedidos || []
+              topProducts.value = response.data.produtos_mais_vendidos || []
+              
+            } catch (error) {
+              console.error("Erro ao buscar dados do dashboard:", error)
+            } finally {
+              loading.value = false
+            }
+          }
+          
+          onMounted(() => {
+            productStore.fetchProducts({ page: 1 }) // Mantém a busca inicial de produtos
+            fetchDashboardData()
+          })
+          </script>
 <template>
   <div class="dashboard-page">
     <div class="page-header" v-animate>
@@ -6,182 +67,124 @@
         <p class="page-subtitle">Acompanhe o desempenho e as métricas da sua loja.</p>
       </div>
       <div class="date-filter">
-        <select class="filter-select">
-          <option>Hoje</option>
-          <option>Últimos 7 dias</option>
-          <option selected>Este Mês</option>
-          <option>Este Ano</option>
+        <select class="filter-select" @change="fetchDashboardData">
+          <option value="hoje">Hoje</option>
+          <option value="7d">Últimos 7 dias</option>
+          <option value="mes" selected>Este Mês</option>
+          <option value="ano">Este Ano</option>
         </select>
       </div>
     </div>
 
-    <div class="stats-grid" v-animate>
-      <div class="stat-card">
-        <div class="stat-icon bg-green">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div class="stat-details">
-          <span class="stat-label">Faturamento Total</span>
-          <span class="stat-value">R$ 142.350,00</span>
-          <div class="stat-trend positive">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
-            </svg>
-            +12.5% em relação ao mês anterior
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon bg-blue">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-        </div>
-        <div class="stat-details">
-          <span class="stat-label">Pedidos Realizados</span>
-          <span class="stat-value">384</span>
-          <div class="stat-trend positive">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
-            </svg>
-            +5.2% em relação ao mês anterior
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon bg-orange">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-        </div>
-        <div class="stat-details">
-          <span class="stat-label">Produtos Ativos</span>
-          <span class="stat-value">{{ productStore.totalItems || 0 }}</span>
-          <div class="stat-trend neutral">
-            Total de itens cadastrados no catálogo
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon bg-purple">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        </div>
-        <div class="stat-details">
-          <span class="stat-label">Novos Clientes</span>
-          <span class="stat-value">128</span>
-          <div class="stat-trend negative">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M12 13a1 1 0 100 2h5a1 1 0 001-1V9a1 1 0 10-2 0v2.586l-4.293-4.293a1 1 0 00-1.414 0L8 9.586 3.707 5.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0L11 9.414 14.586 13H12z" clip-rule="evenodd" />
-            </svg>
-            -2.1% em relação ao mês anterior
-          </div>
-        </div>
-      </div>
+    <div v-if="loading" class="loading-state" style="text-align: center; padding: 2rem;">
+      <p>Carregando dados da loja...</p>
     </div>
 
-    <div class="dashboard-content" v-animate>
-      <div class="panel recent-orders">
-        <div class="panel-header">
-          <h2>Últimos Pedidos</h2>
-          <button class="btn-text">Ver todos</button>
+    <div v-else>
+      <div class="stats-grid" v-animate>
+        <div class="stat-card">
+          <div class="stat-icon bg-green">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="stat-details">
+            <span class="stat-label">Faturamento Total</span>
+            <span class="stat-value">{{ formatPrice(stats.faturamento_total) }}</span>
+          </div>
         </div>
-        <div class="table-responsive">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Pedido</th>
-                <th>Cliente</th>
-                <th>Data</th>
-                <th>Status</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>#10425</strong></td>
-                <td>Marcos Roberto</td>
-                <td>Hoje, 10:45</td>
-                <td><span class="status-badge status-paid">Pago</span></td>
-                <td class="font-bold text-main">R$ 2.450,00</td>
-              </tr>
-              <tr>
-                <td><strong>#10424</strong></td>
-                <td>Auto Mecânica Silva</td>
-                <td>Hoje, 09:12</td>
-                <td><span class="status-badge status-pending">Aguardando Pagamento</span></td>
-                <td class="font-bold text-main">R$ 890,00</td>
-              </tr>
-              <tr>
-                <td><strong>#10423</strong></td>
-                <td>Transportes LogSul</td>
-                <td>Ontem, 16:30</td>
-                <td><span class="status-badge status-paid">Pago</span></td>
-                <td class="font-bold text-main">R$ 5.120,00</td>
-              </tr>
-              <tr>
-                <td><strong>#10422</strong></td>
-                <td>João Paulo Dias</td>
-                <td>Ontem, 14:20</td>
-                <td><span class="status-badge status-shipped">Enviado</span></td>
-                <td class="font-bold text-main">R$ 340,00</td>
-              </tr>
-              <tr>
-                <td><strong>#10421</strong></td>
-                <td>Viação Norte</td>
-                <td>12 Mai, 11:15</td>
-                <td><span class="status-badge status-shipped">Enviado</span></td>
-                <td class="font-bold text-main">R$ 1.250,00</td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="stat-card">
+          <div class="stat-icon bg-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+          <div class="stat-details">
+            <span class="stat-label">Pedidos Realizados</span>
+            <span class="stat-value">{{ stats.pedidos_realizados }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon bg-orange">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <div class="stat-details">
+            <span class="stat-label">Produtos Ativos</span>
+            <span class="stat-value">{{ productStore.totalItems || 0 }}</span>
+            <div class="stat-trend neutral">
+              No catálogo
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon bg-purple">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+          <div class="stat-details">
+            <span class="stat-label">Novos Clientes</span>
+            <span class="stat-value">{{ stats.novos_clientes }}</span>
+          </div>
         </div>
       </div>
 
-      <div class="panel top-products">
-        <div class="panel-header">
-          <h2>Produtos Mais Vendidos</h2>
+      <div class="dashboard-content" v-animate style="margin-top: 2rem;">
+        <div class="panel recent-orders">
+          <div class="panel-header">
+            <h2>Últimos Pedidos</h2>
+            <button class="btn-text" @click="$router.push('/admin/pedidos')">Ver todos</button>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Pedido</th>
+                  <th>Cliente</th>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="recentOrders.length === 0">
+                  <td colspan="5" style="text-align: center;">Nenhum pedido encontrado.</td>
+                </tr>
+                <tr v-for="order in recentOrders" :key="order.id">
+                  <td><strong>#{{ order.id }}</strong></td>
+                  <td>{{ order.cliente_nome }}</td>
+                  <td>{{ formatDate(order.data_criacao) }}</td>
+                  <td>
+                    <span :class="['status-badge', getStatusClass(order.status)]">
+                      {{ order.status_display || order.status }}
+                    </span>
+                  </td>
+                  <td class="font-bold text-main">{{ formatPrice(order.total) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="top-list">
-          <div class="top-item">
-            <div class="item-rank">1</div>
-            <div class="item-info">
-              <h4>Bico Injetor Bosch Amarok</h4>
-              <span>42 unidades vendidas</span>
-            </div>
+
+        <div class="panel top-products">
+          <div class="panel-header">
+            <h2>Produtos Mais Vendidos</h2>
           </div>
-          <div class="top-item">
-            <div class="item-rank">2</div>
-            <div class="item-info">
-              <h4>Kit Filtros Scania P360</h4>
-              <span>38 unidades vendidas</span>
+          <div class="top-list">
+            <div v-if="topProducts.length === 0" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
+              Sem dados de vendas suficientes.
             </div>
-          </div>
-          <div class="top-item">
-            <div class="item-rank">3</div>
-            <div class="item-info">
-              <h4>Bomba de Alta Pressão HR</h4>
-              <span>25 unidades vendidas</span>
-            </div>
-          </div>
-          <div class="top-item">
-            <div class="item-rank">4</div>
-            <div class="item-info">
-              <h4>Turbina Master Power</h4>
-              <span>18 unidades vendidas</span>
-            </div>
-          </div>
-          <div class="top-item">
-            <div class="item-rank">5</div>
-            <div class="item-info">
-              <h4>Sensor de Pressão Rail</h4>
-              <span>15 unidades vendidas</span>
+            <div class="top-item" v-for="(product, index) in topProducts" :key="product.id">
+              <div class="item-rank">{{ index + 1 }}</div>
+              <div class="item-info">
+                <h4>{{ product.nome }}</h4>
+                <span>{{ product.quantidade_vendida }} unidades vendidas</span>
+              </div>
             </div>
           </div>
         </div>
@@ -190,18 +193,9 @@
   </div>
 </template>
 
-<script setup>
-import { onMounted } from 'vue'
-import { useProductStore } from '../../stores/productStore'
-
-const productStore = useProductStore()
-
-onMounted(() => {
-  productStore.fetchProducts({ page: 1 })
-})
-</script>
 
 <style scoped>
+/* Todo o seu CSS original permanece inalterado aqui */
 .dashboard-page {
   display: flex;
   flex-direction: column;
