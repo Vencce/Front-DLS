@@ -38,12 +38,12 @@ const router = createRouter({
       component: AdminLayout,
       meta: { requiresAdmin: true },
       children: [
-        { path: '', name: 'admin-dashboard', component: DashboardView },
+        { path: 'dashboard', name: 'admin-dashboard', component: DashboardView },
         { path: 'produtos', name: 'admin-products', component: ProductManagementView },
         { path: 'pedidos', name: 'admin-orders', component: OrderManagementView },
         { path: 'clientes', name: 'admin-customers', component: CustomerManagementView },
         { path: 'configuracoes', name: 'admin-settings', component: SettingsView }
-      ]
+      ]   
     },
     {
       path: '/admin/login',
