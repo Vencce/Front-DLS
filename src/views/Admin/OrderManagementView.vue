@@ -12,18 +12,22 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input type="text" v-model="searchQuery" placeholder="Buscar por número do pedido ou nome do cliente...">
+        <input type="text" v-model="busca" placeholder="Buscar por número do pedido ou nome do cliente...">
       </div>
       <div class="status-filters">
-        <button class="status-tab" :class="{ active: filterStatus === '' }" @click="filterStatus = ''">Todos</button>
-        <button class="status-tab" :class="{ active: filterStatus === 'pending' }" @click="filterStatus = 'pending'">Aguardando Pagamento</button>
-        <button class="status-tab" :class="{ active: filterStatus === 'paid' }" @click="filterStatus = 'paid'">Pagos</button>
-        <button class="status-tab" :class="{ active: filterStatus === 'shipped' }" @click="filterStatus = 'shipped'">Enviados</button>
-        <button class="status-tab" :class="{ active: filterStatus === 'delivered' }" @click="filterStatus = 'delivered'">Entregues</button>
+        <button class="status-tab" :class="{ active: filtroStatus === '' }" @click="filtroStatus = ''">Todos</button>
+        <button class="status-tab" :class="{ active: filtroStatus === 'pending' }" @click="filtroStatus = 'pending'">Aguardando Pagamento</button>
+        <button class="status-tab" :class="{ active: filtroStatus === 'paid' }" @click="filtroStatus = 'paid'">Pagos</button>
+        <button class="status-tab" :class="{ active: filtroStatus === 'shipped' }" @click="filtroStatus = 'shipped'">Enviados</button>
+        <button class="status-tab" :class="{ active: filtroStatus === 'delivered' }" @click="filtroStatus = 'delivered'">Entregues</button>
       </div>
     </div>
 
-    <div class="table-card" v-animate>
+    <div v-if="carregando" class="loading-state" style="text-align: center; padding: 2rem;">
+      <p>Carregando pedidos...</p>
+    </div>
+
+    <div v-else class="table-card" v-animate>
       <div class="table-responsive">
         <table class="data-table">
           <thead>
@@ -37,28 +41,28 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="filteredOrders.length === 0">
+            <tr v-if="pedidosFiltrados.length === 0">
               <td colspan="6" class="empty-state">
                 Nenhum pedido encontrado.
               </td>
             </tr>
-            <tr v-for="order in filteredOrders" :key="order.id">
+            <tr v-for="pedido in pedidosFiltrados" :key="pedido.id">
               <td>
-                <span class="order-id">#{{ order.id }}</span>
+                <span class="order-id">#{{ pedido.id }}</span>
               </td>
               <td>
                 <div class="client-info">
-                  <span class="name">{{ order.customer_name }}</span>
-                  <span class="email">{{ order.customer_email }}</span>
+                  <span class="name">{{ pedido.customer_name || pedido.cliente_nome || 'Cliente não informado' }}</span>
+                  <span class="email">{{ pedido.customer_email || pedido.cliente_email || '' }}</span>
                 </div>
               </td>
-              <td>{{ order.date }}</td>
+              <td>{{ formatarData(pedido.created_at || pedido.data_criacao || pedido.date || pedido.data) }}</td>
               <td>
-                <span class="status-badge" :class="getStatusClass(order.status)">
-                  {{ getStatusText(order.status) }}
+                <span class="status-badge" :class="obterClasseStatus(pedido.status)">
+                  {{ obterTextoStatus(pedido.status) }}
                 </span>
               </td>
-              <td class="price-cell">{{ formatPrice(order.total) }}</td>
+              <td class="price-cell">{{ formatarPreco(pedido.total) }}</td>
               <td>
                 <button class="btn-action">Gerenciar</button>
               </td>
@@ -71,60 +75,85 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import api from '../../services/api'
 
-const searchQuery = ref('')
-const filterStatus = ref('')
+const busca = ref('')
+const filtroStatus = ref('')
+const pedidos = ref([])
+const carregando = ref(true)
 
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+const formatarPreco = (valor) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0)
 }
 
-const mockOrders = ref([
-  { id: '10425', customer_name: 'Marcos Roberto', customer_email: 'marcos@email.com', date: 'Hoje, 10:45', status: 'paid', total: 2450.00 },
-  { id: '10424', customer_name: 'Auto Mecânica Silva', customer_email: 'contato@mecanicasilva.com', date: 'Hoje, 09:12', status: 'pending', total: 890.00 },
-  { id: '10423', customer_name: 'Transportes LogSul', customer_email: 'compras@logsul.com.br', date: 'Ontem, 16:30', status: 'paid', total: 5120.00 },
-  { id: '10422', customer_name: 'João Paulo Dias', customer_email: 'joaopaulo@email.com', date: 'Ontem, 14:20', status: 'shipped', total: 340.00 },
-  { id: '10421', customer_name: 'Viação Norte', customer_email: 'financeiro@viacaonorte.com', date: '12 Mai, 11:15', status: 'delivered', total: 1250.00 }
-])
+const formatarData = (stringData) => {
+  if (!stringData) return ''
+  const data = new Date(stringData)
+  if (isNaN(data.getTime())) return stringData 
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  }).format(data)
+}
 
-const filteredOrders = computed(() => {
-  let result = mockOrders.value
+const buscarPedidos = async () => {
+  try {
+    carregando.value = true
+    const resposta = await api.get('/orders/')
+    pedidos.value = resposta.data.results || resposta.data
+  } catch (erro) {
+    console.error(erro)
+  } finally {
+    carregando.value = false
+  }
+}
 
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(o => 
-      o.id.toLowerCase().includes(q) || 
-      o.customer_name.toLowerCase().includes(q)
-    )
+const pedidosFiltrados = computed(() => {
+  let resultado = pedidos.value
+
+  if (busca.value) {
+    const q = busca.value.toLowerCase()
+    resultado = resultado.filter(p => {
+      const idMatch = String(p.id).toLowerCase().includes(q)
+      const nomeMatch = (p.customer_name || p.cliente_nome || '').toLowerCase().includes(q)
+      return idMatch || nomeMatch
+    })
   }
 
-  if (filterStatus.value) {
-    result = result.filter(o => o.status === filterStatus.value)
+  if (filtroStatus.value) {
+    resultado = resultado.filter(p => {
+      const s = String(p.status).toLowerCase()
+      return s === filtroStatus.value.toLowerCase() || 
+             (filtroStatus.value === 'paid' && (s === 'pago' || s === 'confirmed' || s === 'paid')) ||
+             (filtroStatus.value === 'pending' && (s === 'pendente' || s === 'aguardando' || s === 'pending')) ||
+             (filtroStatus.value === 'shipped' && (s === 'enviado' || s === 'shipped')) ||
+             (filtroStatus.value === 'delivered' && (s === 'entregue' || s === 'delivered'))
+    })
   }
 
-  return result
+  return resultado
 })
 
-const getStatusClass = (status) => {
-  const map = {
-    pending: 'status-pending',
-    paid: 'status-paid',
-    shipped: 'status-shipped',
-    delivered: 'status-delivered'
-  }
-  return map[status] || ''
+const obterClasseStatus = (status) => {
+  const s = String(status).toLowerCase()
+  if (s === 'paid' || s === 'pago' || s === 'confirmed') return 'status-paid'
+  if (s === 'shipped' || s === 'enviado') return 'status-shipped'
+  if (s === 'delivered' || s === 'entregue') return 'status-delivered'
+  return 'status-pending'
 }
 
-const getStatusText = (status) => {
-  const map = {
-    pending: 'Aguardando Pagamento',
-    paid: 'Pago',
-    shipped: 'Enviado',
-    delivered: 'Entregue'
-  }
-  return map[status] || status
+const obterTextoStatus = (status) => {
+  const s = String(status).toLowerCase()
+  if (s === 'paid' || s === 'pago' || s === 'confirmed') return 'Pago'
+  if (s === 'shipped' || s === 'enviado') return 'Enviado'
+  if (s === 'delivered' || s === 'entregue') return 'Entregue'
+  if (s === 'canceled' || s === 'cancelado') return 'Cancelado'
+  return 'Aguardando Pagamento'
 }
+
+onMounted(() => {
+  buscarPedidos()
+})
 </script>
 
 <style scoped>

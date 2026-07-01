@@ -18,16 +18,20 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input type="text" v-model="searchQuery" placeholder="Buscar por nome, e-mail ou CPF/CNPJ...">
+        <input type="text" v-model="busca" placeholder="Buscar por nome, e-mail ou CPF/CNPJ...">
       </div>
       <div class="status-filters">
-        <button class="status-tab" :class="{ active: filterStatus === '' }" @click="filterStatus = ''">Todos</button>
-        <button class="status-tab" :class="{ active: filterStatus === 'active' }" @click="filterStatus = 'active'">Ativos</button>
-        <button class="status-tab" :class="{ active: filterStatus === 'inactive' }" @click="filterStatus = 'inactive'">Inativos</button>
+        <button class="status-tab" :class="{ active: filtroStatus === '' }" @click="filtroStatus = ''">Todos</button>
+        <button class="status-tab" :class="{ active: filtroStatus === 'active' }" @click="filtroStatus = 'active'">Ativos</button>
+        <button class="status-tab" :class="{ active: filtroStatus === 'inactive' }" @click="filtroStatus = 'inactive'">Inativos</button>
       </div>
     </div>
 
-    <div class="table-card" v-animate>
+    <div v-if="carregando" class="loading-state" style="text-align: center; padding: 2rem;">
+      <p>Carregando clientes...</p>
+    </div>
+
+    <div v-else class="table-card" v-animate>
       <div class="table-responsive">
         <table class="data-table">
           <thead>
@@ -41,34 +45,34 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="filteredCustomers.length === 0">
+            <tr v-if="clientesFiltrados.length === 0">
               <td colspan="6" class="empty-state">
                 Nenhum cliente encontrado.
               </td>
             </tr>
-            <tr v-for="customer in filteredCustomers" :key="customer.id">
+            <tr v-for="cliente in clientesFiltrados" :key="cliente.id">
               <td>
                 <div class="client-cell">
-                  <div class="avatar">{{ customer.name.charAt(0).toUpperCase() }}</div>
+                  <div class="avatar">{{ (cliente.name || cliente.nome || 'C').charAt(0).toUpperCase() }}</div>
                   <div class="client-info">
-                    <span class="name">{{ customer.name }}</span>
-                    <span class="document">{{ customer.document }}</span>
+                    <span class="name">{{ cliente.name || cliente.nome || 'Sem nome' }}</span>
+                    <span class="document">{{ cliente.document || cliente.cpf || cliente.cnpj || 'Sem documento' }}</span>
                   </div>
                 </div>
               </td>
               <td>
                 <div class="contact-info">
-                  <span class="email">{{ customer.email }}</span>
-                  <span class="phone">{{ customer.phone }}</span>
+                  <span class="email">{{ cliente.email || 'Sem e-mail' }}</span>
+                  <span class="phone">{{ cliente.phone || cliente.telefone || 'Sem telefone' }}</span>
                 </div>
               </td>
-              <td>{{ customer.registeredAt }}</td>
+              <td>{{ formatarData(cliente.registeredAt || cliente.data_cadastro || cliente.created_at) }}</td>
               <td>
-                <span class="orders-count">{{ customer.totalOrders }}</span>
+                <span class="orders-count">{{ cliente.totalOrders || cliente.total_pedidos || 0 }}</span>
               </td>
               <td>
-                <span class="status-badge" :class="customer.status === 'active' ? 'status-active' : 'status-inactive'">
-                  {{ customer.status === 'active' ? 'Ativo' : 'Inativo' }}
+                <span class="status-badge" :class="(cliente.status === 'active' || cliente.is_active === true || cliente.is_active === undefined) ? 'status-active' : 'status-inactive'">
+                  {{ (cliente.status === 'active' || cliente.is_active === true || cliente.is_active === undefined) ? 'Ativo' : 'Inativo' }}
                 </span>
               </td>
               <td>
@@ -87,36 +91,63 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import api from '../../services/api'
 
-const searchQuery = ref('')
-const filterStatus = ref('')
+const busca = ref('')
+const filtroStatus = ref('')
+const clientes = ref([])
+const carregando = ref(true)
 
-const mockCustomers = ref([
-  { id: 1, name: 'Marcos Roberto', document: '123.456.789-00', email: 'marcos@email.com', phone: '(11) 98765-4321', registeredAt: '10/05/2023', totalOrders: 12, status: 'active' },
-  { id: 2, name: 'Auto Mecânica Silva', document: '12.345.678/0001-90', email: 'contato@mecanicasilva.com', phone: '(47) 3322-1100', registeredAt: '15/08/2023', totalOrders: 45, status: 'active' },
-  { id: 3, name: 'Transportes LogSul', document: '98.765.432/0001-10', email: 'compras@logsul.com.br', phone: '(51) 3456-7890', registeredAt: '02/11/2023', totalOrders: 8, status: 'active' },
-  { id: 4, name: 'João Paulo Dias', document: '456.789.123-11', email: 'joaopaulo@email.com', phone: '(41) 99999-8888', registeredAt: '20/01/2024', totalOrders: 1, status: 'inactive' },
-  { id: 5, name: 'Viação Norte', document: '11.222.333/0001-44', email: 'financeiro@viacaonorte.com', phone: '(92) 3333-4444', registeredAt: '05/03/2024', totalOrders: 3, status: 'active' }
-])
+const buscarClientes = async () => {
+  try {
+    carregando.value = true
+    const resposta = await api.get('/customers/')
+    clientes.value = resposta.data.results || resposta.data
+  } catch (erro) {
+    console.error(erro)
+  } finally {
+    carregando.value = false
+  }
+}
 
-const filteredCustomers = computed(() => {
-  let result = mockCustomers.value
+const formatarData = (stringData) => {
+  if (!stringData) return ''
+  const data = new Date(stringData)
+  if (isNaN(data.getTime())) return stringData
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  }).format(data)
+}
 
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(c => 
-      c.name.toLowerCase().includes(q) || 
-      c.email.toLowerCase().includes(q) ||
-      c.document.includes(q)
-    )
+const clientesFiltrados = computed(() => {
+  let resultado = clientes.value
+
+  if (busca.value) {
+    const q = busca.value.toLowerCase()
+    resultado = resultado.filter(c => {
+      const nome = (c.name || c.nome || '').toLowerCase()
+      const email = (c.email || '').toLowerCase()
+      const documento = (c.document || c.cpf || c.cnpj || '').toLowerCase()
+      return nome.includes(q) || email.includes(q) || documento.includes(q)
+    })
   }
 
-  if (filterStatus.value) {
-    result = result.filter(c => c.status === filterStatus.value)
+  if (filtroStatus.value) {
+    resultado = resultado.filter(c => {
+      const status = c.status || c.is_active || 'active'
+      const isActive = status === 'active' || status === true
+      if (filtroStatus.value === 'active') return isActive
+      if (filtroStatus.value === 'inactive') return !isActive
+      return true
+    })
   }
 
-  return result
+  return resultado
+})
+
+onMounted(() => {
+  buscarClientes()
 })
 </script>
 

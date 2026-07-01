@@ -1,64 +1,60 @@
-          <script setup>
-          import { ref, onMounted } from 'vue'
-          import { useProductStore } from '../../stores/productStore'
-          import api from '../../services/api'
-          
-          const productStore = useProductStore()
-          
-          // Estados reativos
-          const loading = ref(true)
-          const stats = ref({
-            faturamento_total: 0,
-            pedidos_realizados: 0,
-            novos_clientes: 0
-          })
-          const recentOrders = ref([])
-          const topProducts = ref([])
-          
-          // Funções utilitárias
-          const formatPrice = (value) => {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
-          }
-          
-          const formatDate = (dateString) => {
-            if (!dateString) return ''
-            const date = new Date(dateString)
-            return new Intl.DateTimeFormat('pt-BR', {
-              day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-            }).format(date)
-          }
-          
-          const getStatusClass = (status) => {
-            const statusLower = String(status).toLowerCase()
-            if (statusLower.includes('pago') || statusLower.includes('concluido')) return 'status-paid'
-            if (statusLower.includes('enviado')) return 'status-shipped'
-            return 'status-pending' // Aguardando, cancelado, etc.
-          }
-          
-          // Chamada à API
-          const fetchDashboardData = async () => {
-            try {
-              loading.value = true
-              // Substitua '/dashboard/resumo/' pela URL exata configurada no seu arquivo urls.py do Django
-              const response = await api.get('/dashboard/resumo/')
-              
-              // Assumindo que o Django retorna os dados no formato snake_case
-              stats.value = response.data.estatisticas || { faturamento_total: 0, pedidos_realizados: 0, novos_clientes: 0 }
-              recentOrders.value = response.data.ultimos_pedidos || []
-              topProducts.value = response.data.produtos_mais_vendidos || []
-              
-            } catch (error) {
-              console.error("Erro ao buscar dados do dashboard:", error)
-            } finally {
-              loading.value = false
-            }
-          }
-          
-          onMounted(() => {
-            productStore.fetchProducts({ page: 1 }) // Mantém a busca inicial de produtos
-            fetchDashboardData()
-          })
-          </script>
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useProductStore } from '../../stores/productStore'
+import api from '../../services/api'
+
+const productStore = useProductStore()
+
+const loading = ref(true)
+const stats = ref({
+  faturamento_total: 0,
+  pedidos_realizados: 0,
+  novos_clientes: 0
+})
+const recentOrders = ref([])
+const topProducts = ref([])
+
+const formatPrice = (value) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  }).format(date)
+}
+
+const getStatusClass = (status) => {
+  const statusLower = String(status).toLowerCase()
+  if (statusLower.includes('pago') || statusLower.includes('concluido')) return 'status-paid'
+  if (statusLower.includes('enviado')) return 'status-shipped'
+  return 'status-pending'
+}
+
+const fetchDashboardData = async () => {
+  try {
+    loading.value = true
+    const response = await api.get('/dashboard/resumo/')
+    
+    stats.value = response.data.estatisticas || { faturamento_total: 0, pedidos_realizados: 0, novos_clientes: 0 }
+    recentOrders.value = response.data.ultimos_pedidos || []
+    topProducts.value = response.data.produtos_mais_vendidos || []
+    
+  } catch (error) {
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  productStore.fetchProducts({ page: 1 })
+  fetchDashboardData()
+})
+</script>
+
 <template>
   <div class="dashboard-page">
     <div class="page-header" v-animate>
@@ -114,7 +110,7 @@
           </div>
           <div class="stat-details">
             <span class="stat-label">Produtos Ativos</span>
-            <span class="stat-value">{{ productStore.totalItems || 0 }}</span>
+            <span class="stat-value">{{ productStore.totalItems }}</span>
             <div class="stat-trend neutral">
               No catálogo
             </div>
@@ -193,9 +189,7 @@
   </div>
 </template>
 
-
 <style scoped>
-/* Todo o seu CSS original permanece inalterado aqui */
 .dashboard-page {
   display: flex;
   flex-direction: column;

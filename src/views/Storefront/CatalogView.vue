@@ -14,6 +14,12 @@ const filters = ref({
   brand: ''
 })
 
+const sortOption = ref('')
+const minPrice = ref(0.00)
+const maxPrice = ref(1000.00)
+const absMin = ref(0.00)
+const absMax = ref(1000.00)
+
 const isCategoryOpen = ref(true)
 const isBrandOpen = ref(true)
 
@@ -49,10 +55,25 @@ const clearFilters = () => {
   filters.value.search = ''
   filters.value.category = ''
   filters.value.brand = ''
+  sortOption.value = ''
+  minPrice.value = absMin.value
+  maxPrice.value = absMax.value
+}
+
+const validateMin = () => {
+  if (Number(minPrice.value) > Number(maxPrice.value)) {
+    minPrice.value = maxPrice.value
+  }
+}
+
+const validateMax = () => {
+  if (Number(maxPrice.value) < Number(minPrice.value)) {
+    maxPrice.value = minPrice.value
+  }
 }
 
 const filteredProducts = computed(() => {
-  let result = productStore.products
+  let result = [...productStore.products]
 
   if (filters.value.search) {
     const q = filters.value.search.toLowerCase()
@@ -77,6 +98,21 @@ const filteredProducts = computed(() => {
     }
   }
 
+  result = result.filter(p => {
+    const price = parseFloat(p.price)
+    return price >= Number(minPrice.value) && price <= Number(maxPrice.value)
+  })
+
+  if (sortOption.value === 'price_asc') {
+    result.sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+  } else if (sortOption.value === 'price_desc') {
+    result.sort((a, b) => parseFloat(b.price) - parseFloat(a.price))
+  } else if (sortOption.value === 'name_asc') {
+    result.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  } else if (sortOption.value === 'name_desc') {
+    result.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+  }
+
   return result
 })
 
@@ -84,6 +120,12 @@ onMounted(async () => {
   await productStore.fetchCategories()
   await productStore.fetchBrands()
   await productStore.fetchProducts()
+  
+  if (productStore.products.length > 0) {
+    const maxP = Math.max(...productStore.products.map(p => parseFloat(p.price)))
+    absMax.value = Math.ceil(maxP)
+    maxPrice.value = absMax.value
+  }
 })
 </script>
 
@@ -97,67 +139,169 @@ onMounted(async () => {
     </div>
 
     <div class="container layout-grid">
-      <aside class="filters-sidebar">
-        <div class="filter-group">
+      <aside class="filter-sidebar">
+        
+        <div class="filter-section search-section">
           <div class="search-box">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input type="text" v-model="filters.search" placeholder="Buscar por Nome, SKU ou OEM...">
+            <input type="text" v-model="filters.search" placeholder="Buscar peça...">
           </div>
         </div>
 
-        <div class="filter-group">
-          <button class="filter-toggle" @click="isCategoryOpen = !isCategoryOpen">
-            <h3>Categorias</h3>
-            <svg :class="{ 'rotate-180': isCategoryOpen }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+        <div class="filter-section">
+          <h3 class="filter-title">Ordenar por:</h3>
+          <div class="sort-grid">
+            <button class="sort-btn" :class="{ active: sortOption === 'best_sellers' }" @click="sortOption = 'best_sellers'">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                </svg>
+              </div>
+              <span>Mais vendidos</span>
+            </button>
+            
+            <button class="sort-btn" :class="{ active: sortOption === 'discount' }" @click="sortOption = 'discount'">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="19" y1="5" x2="5" y2="19"></line>
+                  <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                  <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                </svg>
+              </div>
+              <span>Desconto</span>
+            </button>
+            
+            <button class="sort-btn" :class="{ active: sortOption === 'price_asc' }" @click="sortOption = 'price_asc'">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <polyline points="19 12 12 19 5 12"></polyline>
+                </svg>
+              </div>
+              <span>Menor Preço</span>
+            </button>
+            
+            <button class="sort-btn" :class="{ active: sortOption === 'price_desc' }" @click="sortOption = 'price_desc'">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5"></line>
+                  <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+              </div>
+              <span>Maior Preço</span>
+            </button>
+            
+            <button class="sort-btn" :class="{ active: sortOption === 'name_asc' }" @click="sortOption = 'name_asc'">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 3h5v5"></path>
+                  <path d="M21 3l-7 7"></path>
+                  <path d="M8 21H3v-5"></path>
+                  <path d="M3 21l7-7"></path>
+                </svg>
+              </div>
+              <span>Nome (A-Z)</span>
+            </button>
+            
+            <button class="sort-btn" :class="{ active: sortOption === 'name_desc' }" @click="sortOption = 'name_desc'">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H3v5"></path>
+                  <path d="M3 3l7 7"></path>
+                  <path d="M16 21h5v-5"></path>
+                  <path d="M21 21l-7-7"></path>
+                </svg>
+              </div>
+              <span>Nome (Z-A)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="accordion-group">
+          <div class="accordion-item">
+            <button class="accordion-header" @click="isCategoryOpen = !isCategoryOpen">
+              <span>Categorias</span>
+              <svg :class="{'rotate': isCategoryOpen}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="accordion-body" v-show="isCategoryOpen">
+              <ul class="filter-list scrollable-list">
+                <li>
+                  <button :class="{ active: filters.category === '' }" @click="filters.category = ''">
+                    Todas as Categorias
+                  </button>
+                </li>
+                <li v-for="cat in productStore.categories" :key="cat.id">
+                  <button :class="{ active: filters.category === cat.id }" @click="filters.category = cat.id">
+                    {{ cat.name }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <button class="accordion-header" @click="isBrandOpen = !isBrandOpen">
+              <span>Marcas</span>
+              <svg :class="{'rotate': isBrandOpen}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="accordion-body" v-show="isBrandOpen">
+              <ul class="filter-list scrollable-list">
+                <li>
+                  <button :class="{ active: filters.brand === '' }" @click="filters.brand = ''">
+                    Todas as Marcas
+                  </button>
+                </li>
+                <li v-for="brand in productStore.brands" :key="brand.id">
+                  <button :class="{ active: filters.brand === brand.id }" @click="filters.brand = brand.id">
+                    {{ brand.name }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-section price-section">
+          <h3 class="filter-title price-title">Faixas de preço</h3>
+          <div class="price-inputs">
+            <input type="number" v-model="minPrice" class="price-input" step="0.01">
+            <input type="number" v-model="maxPrice" class="price-input" step="0.01">
+            <button class="price-ok-btn" @click="validateMin(); validateMax()">OK</button>
+          </div>
           
-          <div class="filter-content" v-show="isCategoryOpen">
-            <ul class="filter-list scrollable-list">
-              <li>
-                <button :class="{ active: filters.category === '' }" @click="filters.category = ''">
-                  Todas as Categorias
-                </button>
-              </li>
-              <li v-for="cat in productStore.categories" :key="cat.id">
-                <button :class="{ active: filters.category === cat.id }" @click="filters.category = cat.id">
-                  {{ cat.name }}
-                </button>
-              </li>
-            </ul>
+          <div class="price-slider-container">
+            <input type="range" :min="absMin" :max="absMax" v-model="minPrice" class="slider" @input="validateMin">
+            <input type="range" :min="absMin" :max="absMax" v-model="maxPrice" class="slider" @input="validateMax">
+          </div>
+          
+          <div class="price-labels">
+            <div class="price-label">
+              <span>R$ {{ Number(minPrice).toFixed(2).replace('.', ',') }}</span>
+              <span class="sub-label">(min)</span>
+            </div>
+            <div class="price-label right">
+              <span>R$ {{ Number(maxPrice).toFixed(2).replace('.', ',') }}</span>
+              <span class="sub-label">(máx)</span>
+            </div>
           </div>
         </div>
-
-        <div class="filter-group">
-          <button class="filter-toggle" @click="isBrandOpen = !isBrandOpen">
-            <h3>Marcas</h3>
-            <svg :class="{ 'rotate-180': isBrandOpen }" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+        
+        <div class="filter-section clear-section" v-if="filters.search || filters.category || filters.brand || sortOption || minPrice > absMin || maxPrice < absMax">
+          <button class="btn-clear" @click="clearFilters">
+            Limpar Filtros
           </button>
-
-          <div class="filter-content" v-show="isBrandOpen">
-            <ul class="filter-list scrollable-list">
-              <li>
-                <button :class="{ active: filters.brand === '' }" @click="filters.brand = ''">
-                  Todas as Marcas
-                </button>
-              </li>
-              <li v-for="brand in productStore.brands" :key="brand.id">
-                <button :class="{ active: filters.brand === brand.id }" @click="filters.brand = brand.id">
-                  {{ brand.name }}
-                </button>
-              </li>
-            </ul>
-          </div>
         </div>
-
-        <button class="btn-clear" @click="clearFilters" v-if="filters.search || filters.category || filters.brand">
-          Limpar Filtros
-        </button>
       </aside>
 
       <main class="products-area">
@@ -262,66 +406,36 @@ onMounted(async () => {
   }
 }
 
-.filters-sidebar {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 1.5rem;
+.filter-sidebar {
+  background-color: var(--surface-color, #ffffff);
+  border: 1px solid var(--border-color, #b3b3b3);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   position: sticky;
   top: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
 }
 
-.filter-group {
-  display: flex;
-  flex-direction: column;
+.filter-section {
+  padding: 20px;
 }
 
-.filter-toggle {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0 0 1rem 0;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
-  cursor: pointer;
-}
-
-.filter-toggle h3 {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--text-main);
-  margin: 0;
-}
-
-.filter-toggle svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--text-muted);
-  transition: transform 0.3s ease;
-}
-
-.rotate-180 {
-  transform: rotate(180deg);
+.search-section {
+  padding-bottom: 0;
 }
 
 .search-box {
   position: relative;
-  margin-bottom: 0.5rem;
 }
 
 .search-box input {
   width: 100%;
   padding: 0.85rem 1rem 0.85rem 2.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #b3b3b3);
   border-radius: 0.5rem;
-  background-color: var(--bg-color);
-  color: var(--text-main);
+  background-color: var(--bg-color, #ffffff);
+  color: var(--text-main, #333333);
   font-size: 0.95rem;
   outline: none;
   transition: border-color 0.2s;
@@ -329,7 +443,7 @@ onMounted(async () => {
 }
 
 .search-box input:focus {
-  border-color: var(--primary-light);
+  border-color: var(--primary-light, #008a3c);
 }
 
 .search-box svg {
@@ -339,15 +453,121 @@ onMounted(async () => {
   transform: translateY(-50%);
   width: 1.25rem;
   height: 1.25rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #666666);
 }
 
-.filter-content {
-  padding-top: 0.5rem;
+.filter-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--primary-dark, #1a4b76);
+  margin: 0 0 15px 0;
+}
+
+.price-title {
+  color: var(--text-main, #333333);
+}
+
+.sort-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px 5px;
+}
+
+.sort-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s;
+}
+
+.sort-btn:hover {
+  transform: scale(1.05);
+}
+
+.icon-circle {
+  width: 45px;
+  height: 45px;
+  border: 1.5px solid var(--text-main, #333333);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  color: var(--text-main, #333333);
+  transition: all 0.2s;
+}
+
+.icon-circle svg {
+  width: 22px;
+  height: 22px;
+}
+
+.sort-btn span {
+  font-size: 11px;
+  color: var(--text-main, #333333);
+  text-align: center;
+  line-height: 1.2;
+  transition: all 0.2s;
+}
+
+.sort-btn.active .icon-circle {
+  border-color: var(--primary-light, #008a3c);
+  color: var(--primary-light, #008a3c);
+  background-color: rgba(0, 138, 60, 0.05);
+}
+
+.sort-btn.active span {
+  color: var(--primary-light, #008a3c);
+  font-weight: bold;
+}
+
+.accordion-group {
+  border-top: 1px solid var(--border-color, #b3b3b3);
+  border-bottom: 1px solid var(--border-color, #b3b3b3);
+}
+
+.accordion-item {
+  border-bottom: 1px solid var(--border-color, #b3b3b3);
+}
+
+.accordion-item:last-child {
+  border-bottom: none;
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-main, #333333);
+}
+
+.accordion-header svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.accordion-header svg.rotate {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  padding: 0 10px 15px 10px;
 }
 
 .scrollable-list {
-  max-height: 250px;
+  max-height: 200px;
   overflow-y: auto;
   scrollbar-width: thin;
   padding-right: 0.5rem;
@@ -358,12 +578,12 @@ onMounted(async () => {
 }
 
 .scrollable-list::-webkit-scrollbar-track {
-  background: var(--bg-color);
+  background: var(--bg-color, #f9f9f9);
   border-radius: 4px;
 }
 
 .scrollable-list::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--border-color, #b3b3b3);
   border-radius: 4px;
 }
 
@@ -383,7 +603,7 @@ onMounted(async () => {
   border: none;
   padding: 0.65rem 1rem;
   border-radius: 0.5rem;
-  color: var(--text-main);
+  color: var(--text-main, #333333);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -391,13 +611,108 @@ onMounted(async () => {
 }
 
 .filter-list button:hover {
-  background-color: var(--surface-hover);
-  color: var(--primary-light);
+  background-color: var(--surface-hover, #f1f1f1);
+  color: var(--primary-light, #008a3c);
 }
 
 .filter-list button.active {
-  background-color: var(--primary-light-bg);
-  color: var(--primary-dark);
+  background-color: rgba(0, 138, 60, 0.1);
+  color: var(--primary-dark, #006b2e);
+}
+
+.price-section {
+  padding: 20px;
+}
+
+.price-inputs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.price-input {
+  width: 75px;
+  height: 30px;
+  border: 1px solid var(--primary-light, #008a3c);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 13px;
+  color: var(--text-main, #333333);
+  background-color: var(--bg-color, #ffffff);
+  outline: none;
+  text-align: center;
+}
+
+.price-ok-btn {
+  background-color: var(--primary-light, #008a3c);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  height: 30px;
+  padding: 0 15px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.price-ok-btn:hover {
+  background-color: var(--primary-dark, #006b2e);
+}
+
+.price-slider-container {
+  position: relative;
+  height: 20px;
+  margin-bottom: 10px;
+}
+
+.slider {
+  position: absolute;
+  width: 100%;
+  pointer-events: none;
+  appearance: none;
+  z-index: 2;
+  height: 3px;
+  background: var(--primary-light, #008a3c);
+  top: 8px;
+  border-radius: 5px;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  pointer-events: all;
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  border-radius: 50%;
+  background: var(--primary-light, #008a3c);
+  cursor: pointer;
+}
+
+.price-labels {
+  display: flex;
+  justify-content: space-between;
+}
+
+.price-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: var(--text-muted, #666666);
+}
+
+.price-label.right {
+  align-items: flex-end;
+}
+
+.sub-label {
+  font-size: 11px;
+}
+
+.clear-section {
+  padding-top: 0;
+  text-align: center;
 }
 
 .btn-clear {
@@ -409,7 +724,7 @@ onMounted(async () => {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 1rem;
+  width: 100%;
 }
 
 .btn-clear:hover {
@@ -418,7 +733,7 @@ onMounted(async () => {
 }
 
 .btn-clear-large {
-  background-color: var(--primary-light);
+  background-color: var(--primary-light, #008a3c);
   color: #ffffff;
   border: none;
   padding: 0.85rem 1.5rem;
@@ -434,16 +749,16 @@ onMounted(async () => {
   justify-content: center;
   padding: 5rem 2rem;
   text-align: center;
-  background-color: var(--surface-color);
+  background-color: var(--surface-color, #ffffff);
   border-radius: 1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #b3b3b3);
 }
 
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid var(--border-color);
-  border-top-color: var(--primary-light);
+  border: 4px solid var(--border-color, #b3b3b3);
+  border-top-color: var(--primary-light, #008a3c);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1.5rem;
@@ -456,18 +771,18 @@ onMounted(async () => {
 .empty-state svg {
   width: 5rem;
   height: 5rem;
-  color: var(--border-color);
+  color: var(--border-color, #b3b3b3);
   margin-bottom: 1.5rem;
 }
 
 .empty-state h2 {
-  color: var(--text-main);
+  color: var(--text-main, #333333);
   font-size: 1.5rem;
   margin: 0 0 0.5rem 0;
 }
 
 .empty-state p {
-  color: var(--text-muted);
+  color: var(--text-muted, #666666);
   margin-bottom: 2rem;
 }
 
@@ -478,8 +793,8 @@ onMounted(async () => {
 }
 
 .product-card {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background-color: var(--surface-color, #ffffff);
+  border: 1px solid var(--border-color, #b3b3b3);
   border-radius: 1rem;
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -490,13 +805,13 @@ onMounted(async () => {
 .product-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-light);
+  border-color: var(--primary-light, #008a3c);
 }
 
 .card-image {
   aspect-ratio: 4/3;
   width: 100%;
-  background-color: var(--surface-hover);
+  background-color: var(--surface-hover, #f9f9f9);
   padding: 1.5rem;
   display: flex;
   align-items: center;
@@ -518,7 +833,7 @@ onMounted(async () => {
 }
 
 .img-placeholder {
-  color: var(--border-color);
+  color: var(--border-color, #b3b3b3);
 }
 
 .img-placeholder svg {
@@ -535,7 +850,7 @@ onMounted(async () => {
 
 .product-brand {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #666666);
   text-transform: uppercase;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -545,7 +860,7 @@ onMounted(async () => {
 .product-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: var(--text-main, #333333);
   margin: 0 0 0.5rem 0;
   line-height: 1.3;
   cursor: pointer;
@@ -557,12 +872,12 @@ onMounted(async () => {
 }
 
 .product-name:hover {
-  color: var(--primary-light);
+  color: var(--primary-light, #008a3c);
 }
 
 .product-codes {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #666666);
   margin-bottom: 1rem;
 }
 
@@ -577,7 +892,7 @@ onMounted(async () => {
 .price-value {
   font-size: 1.5rem;
   font-weight: 900;
-  color: var(--primary-dark);
+  color: var(--primary-dark, #006b2e);
 }
 
 .stock-status {
@@ -592,7 +907,7 @@ onMounted(async () => {
 
 .btn-add-cart {
   width: 100%;
-  background-color: var(--primary-light);
+  background-color: var(--primary-light, #008a3c);
   color: #ffffff;
   border: none;
   padding: 0.85rem;
@@ -608,12 +923,12 @@ onMounted(async () => {
 }
 
 .btn-add-cart:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  background-color: var(--primary-hover, #007a35);
 }
 
 .btn-add-cart:disabled {
-  background-color: var(--surface-hover);
-  color: var(--text-muted);
+  background-color: var(--surface-hover, #f1f1f1);
+  color: var(--text-muted, #666666);
   cursor: not-allowed;
 }
 

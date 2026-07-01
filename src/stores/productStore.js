@@ -6,6 +6,7 @@ export const useProductStore = defineStore('product', {
     products: [],
     categories: [],
     brands: [],
+    totalItems: 0,
     loading: false,
     error: null,
   }),
@@ -16,6 +17,7 @@ export const useProductStore = defineStore('product', {
       try {
         const response = await api.get('/products/', { params })
         this.products = response.data.results || response.data
+        this.totalItems = response.data.count !== undefined ? response.data.count : this.products.length
       } catch (err) {
         this.error = 'Erro ao carregar os produtos do catálogo.'
       } finally {
