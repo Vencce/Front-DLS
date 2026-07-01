@@ -1,76 +1,3 @@
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/authStore'
-import api from '../../services/api'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const activeTab = ref('orders')
-const orders = ref([])
-const isLoading = ref(true)
-
-const fetchOrders = async () => {
-  isLoading.value = true
-  try {
-    const response = await api.get('/orders/')
-    orders.value = response.data.results || response.data
-  } catch (error) {
-    console.error(error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const logout = () => {
-  authStore.logout()
-  router.push('/login')
-}
-
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  return new Intl.DateTimeFormat('pt-BR', { 
-    day: '2-digit', month: '2-digit', year: 'numeric', 
-    hour: '2-digit', minute: '2-digit' 
-  }).format(new Date(dateString))
-}
-
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-const getStatusClass = (status) => {
-  const map = {
-    'pending': 'status-pending',
-    'paid': 'status-paid',
-    'shipped': 'status-shipped',
-    'delivered': 'status-delivered',
-    'canceled': 'status-canceled'
-  }
-  return map[status] || 'status-pending'
-}
-
-const getStatusName = (status) => {
-  const map = {
-    'pending': 'Pendente',
-    'paid': 'Pago',
-    'shipped': 'Enviado',
-    'delivered': 'Entregue',
-    'canceled': 'Cancelado'
-  }
-  return map[status] || status
-}
-
-onMounted(async () => {
-  if (!authStore.isAuthenticated) {
-    router.push('/login')
-    return
-  }
-  await fetchOrders()
-})
-</script>
-
 <template>
   <div class="customer-area-page">
     <div class="page-header">
@@ -84,18 +11,18 @@ onMounted(async () => {
       <aside class="sidebar">
         <div class="user-profile-card">
           <div class="avatar">
-            {{ authStore.userName.charAt(0).toUpperCase() }}
+            {{ (authStore.userName || 'U').charAt(0).toUpperCase() }}
           </div>
           <div class="user-info">
-            <h3>{{ authStore.userName }}</h3>
-            <p>{{ authStore.user?.email }}</p>
+            <h3>{{ authStore.userName || 'Usuário' }}</h3>
+            <p>{{ authStore.user?.email || 'Nenhum e-mail vinculado' }}</p>
           </div>
         </div>
 
         <nav class="sidebar-nav">
           <button 
             :class="{ active: activeTab === 'orders' }" 
-            @click="activeTab = 'orders'"
+            @click="router.push('/meus-pedidos')"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
             Meus Pedidos
@@ -103,7 +30,7 @@ onMounted(async () => {
           
           <button 
             :class="{ active: activeTab === 'profile' }" 
-            @click="activeTab = 'profile'"
+            @click="router.push('/minha-conta')"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
             Meus Dados
@@ -137,15 +64,15 @@ onMounted(async () => {
               <div class="order-header">
                 <div class="order-id">
                   <span>Pedido</span>
-                  <strong>#{{ order.id.toString().padStart(6, '0') }}</strong>
+                  <strong>#{{ String(order.id).split('-')[0].toUpperCase() }}</strong>
                 </div>
                 <div class="order-date">
                   <span>Data da Compra</span>
-                  <strong>{{ formatDate(order.created_at) }}</strong>
+                  <strong>{{ formatDate(order.created_at || order.data_criacao || order.date) }}</strong>
                 </div>
                 <div class="order-total">
                   <span>Valor Total</span>
-                  <strong>{{ formatPrice(order.total_amount) }}</strong>
+                  <strong>{{ formatPrice(getOrderTotal(order)) }}</strong>
                 </div>
                 <div class="order-status">
                   <span class="badge" :class="getStatusClass(order.status)">
@@ -155,10 +82,10 @@ onMounted(async () => {
               </div>
               
               <div class="order-items" v-if="order.items && order.items.length > 0">
-                <div class="item-row" v-for="item in order.items" :key="item.id">
-                  <div class="item-name">{{ item.product_name }}</div>
+                <div class="item-row" v-for="item in order.items" :key="item.id || item.product_name">
+                  <div class="item-name">{{ item.product_name || item.produto_nome || 'Peça Automotiva' }}</div>
                   <div class="item-qty">{{ item.quantity }}x</div>
-                  <div class="item-price">{{ formatPrice(item.price) }}</div>
+                  <div class="item-price">{{ formatPrice(item.unit_price || item.price) }}</div>
                 </div>
               </div>
             </div>
@@ -187,6 +114,105 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../../stores/authStore'
+import api from '../../services/api'
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+
+const orders = ref([])
+const isLoading = ref(true)
+
+const activeTab = computed(() => {
+  return route.path.includes('meus-pedidos') ? 'orders' : 'profile'
+})
+
+const fetchOrders = async () => {
+  isLoading.value = true
+  try {
+    const response = await api.get('/orders/')
+    const allOrders = response.data.results || response.data
+    
+    if (authStore.user && authStore.user.email) {
+      const emailUsuarioLogado = authStore.user.email.toLowerCase()
+      orders.value = allOrders.filter(o => {
+        const emailPedido = (o.customer_email || o.cliente_email || '').toLowerCase()
+        return emailPedido === emailUsuarioLogado
+      })
+    } else {
+      orders.value = allOrders
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const logout = () => {
+  authStore.logout()
+  router.push('/login')
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return dateString
+  return new Intl.DateTimeFormat('pt-BR', { 
+    day: '2-digit', month: '2-digit', year: 'numeric', 
+    hour: '2-digit', minute: '2-digit' 
+  }).format(date)
+}
+
+const formatPrice = (value) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
+}
+
+const getOrderTotal = (order) => {
+  if (order.total_amount) return order.total_amount
+  if (order.total) return order.total
+  
+  let total = Number(order.shipping_fee || 0)
+  
+  if (order.items && order.items.length > 0) {
+    order.items.forEach(item => {
+      total += Number(item.quantity) * Number(item.unit_price || item.price || 0)
+    })
+  }
+  return total
+}
+
+const getStatusClass = (status) => {
+  const s = String(status).toLowerCase()
+  if (s === 'paid' || s === 'pago' || s === 'confirmed') return 'status-paid'
+  if (s === 'shipped' || s === 'enviado') return 'status-shipped'
+  if (s === 'delivered' || s === 'entregue') return 'status-delivered'
+  if (s === 'canceled' || s === 'cancelado') return 'status-canceled'
+  return 'status-pending'
+}
+
+const getStatusName = (status) => {
+  const s = String(status).toLowerCase()
+  if (s === 'paid' || s === 'pago' || s === 'confirmed') return 'Pago'
+  if (s === 'shipped' || s === 'enviado') return 'Enviado'
+  if (s === 'delivered' || s === 'entregue') return 'Entregue'
+  if (s === 'canceled' || s === 'cancelado') return 'Cancelado'
+  return 'Aguardando Pagamento'
+}
+
+onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+  await fetchOrders()
+})
+</script>
 
 <style scoped>
 .customer-area-page {

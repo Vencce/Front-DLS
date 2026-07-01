@@ -31,6 +31,7 @@ const router = createRouter({
     { path: '/carrinho', name: 'cart', component: CartView },
     { path: '/checkout', name: 'checkout', component: CheckoutView },
     { path: '/minha-conta', name: 'customer-area', component: CustomerAreaView, meta: { requiresAuth: true } },
+    { path: '/meus-pedidos', name: 'my-orders', component: CustomerAreaView, meta: { requiresAuth: true } },
     { path: '/sobre', name: 'about', component: AboutView },
     { path: '/login', name: 'login', component: AuthView },
     {

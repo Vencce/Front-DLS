@@ -5,7 +5,7 @@
         <h1 class="page-title">Gestão de Clientes</h1>
         <p class="page-subtitle">Visualize e gerencie a base de clientes da sua loja.</p>
       </div>
-      <button class="btn-primary">
+      <button class="btn-primary" @click="abrirModalAdd">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -77,14 +77,48 @@
               </td>
               <td>
                 <div class="action-buttons">
-                  <button class="btn-icon edit" title="Editar Cliente">
+                  <button class="btn-icon edit" title="Editar Cliente" @click="abrirModalEdicao(cliente)">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button class="btn-icon delete" title="Excluir Cliente" @click="excluirCliente(cliente)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <div v-if="mostrarModal" class="modal-overlay" @click.self="fecharModal">
+      <div class="modal-card">
+        <h2>{{ modoModal === 'add' ? 'Adicionar Novo Cliente' : 'Editar Cliente' }}</h2>
+        <form @submit.prevent="salvarCliente">
+          <div class="form-group">
+            <label>Nome Completo</label>
+            <input type="text" v-model="clienteAtual.nome" required />
+          </div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" v-model="clienteAtual.email" :disabled="modoModal === 'edit'" required />
+          </div>
+          <div class="form-group">
+            <label>CPF / CNPJ</label>
+            <input type="text" v-model="clienteAtual.cpf" />
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select v-model="clienteAtual.status">
+              <option value="active">Ativo</option>
+              <option value="inactive">Inativo</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" @click="fecharModal">Cancelar</button>
+            <button type="submit" class="btn-save">Salvar</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -98,6 +132,10 @@ const busca = ref('')
 const filtroStatus = ref('')
 const clientes = ref([])
 const carregando = ref(true)
+
+const mostrarModal = ref(false)
+const modoModal = ref('add')
+const clienteAtual = ref({ id: '', nome: '', email: '', cpf: '', status: 'active' })
 
 const buscarClientes = async () => {
   try {
@@ -145,6 +183,59 @@ const clientesFiltrados = computed(() => {
 
   return resultado
 })
+
+const abrirModalAdd = () => {
+  clienteAtual.value = { id: '', nome: '', email: '', cpf: '', status: 'active' }
+  modoModal.value = 'add'
+  mostrarModal.value = true
+}
+
+const abrirModalEdicao = (cliente) => {
+  clienteAtual.value = {
+    id: cliente.id,
+    nome: cliente.nome || cliente.name || '',
+    email: cliente.email || '',
+    cpf: cliente.cpf || cliente.document || '',
+    status: (cliente.status === 'active' || cliente.is_active === true || cliente.is_active === undefined) ? 'active' : 'inactive'
+  }
+  modoModal.value = 'edit'
+  mostrarModal.value = true
+}
+
+const fecharModal = () => {
+  mostrarModal.value = false
+}
+
+const salvarCliente = async () => {
+  try {
+    if (modoModal.value === 'add') {
+      await api.post('/customers/', clienteAtual.value)
+      alert('Cliente adicionado com sucesso!')
+    } else {
+      await api.put(`/customers/${clienteAtual.value.id}/`, clienteAtual.value)
+      alert('Cliente atualizado com sucesso!')
+    }
+    fecharModal()
+    buscarClientes()
+  } catch (erro) {
+    console.error(erro)
+    alert(erro.response?.data?.erro || 'Erro ao salvar cliente.')
+  }
+}
+
+const excluirCliente = async (cliente) => {
+  const nomeCliente = cliente.nome || cliente.name || 'este cliente'
+  if (!confirm(`Tem certeza que deseja excluir ${nomeCliente}?`)) return
+  
+  try {
+    await api.delete(`/customers/${cliente.id}/`)
+    alert('Cliente excluído com sucesso!')
+    buscarClientes()
+  } catch (erro) {
+    console.error(erro)
+    alert(erro.response?.data?.erro || 'Erro ao excluir cliente.')
+  }
+}
 
 onMounted(() => {
   buscarClientes()
@@ -441,8 +532,97 @@ onMounted(() => {
   color: #3b82f6;
 }
 
+.btn-icon.delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
 .btn-icon svg {
   width: 1.1rem;
   height: 1.1rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background-color: var(--surface-color);
+  padding: 2rem;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.modal-card h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.form-group input, .form-group select {
+  padding: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  outline: none;
+}
+
+.form-group input:focus, .form-group select:focus {
+  border-color: var(--primary-light);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-cancel {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+.btn-save {
+  background-color: var(--primary-light);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-save:hover {
+  background-color: var(--primary-hover);
 }
 </style>
