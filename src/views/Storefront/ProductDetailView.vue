@@ -64,13 +64,9 @@
             </div>
           </div>
 
-          <div class="shipping-calc">
-            <label for="cep-calc">Calcular Frete e Prazo</label>
-            <div class="cep-group">
-              <input type="text" id="cep-calc" placeholder="00000-000" maxlength="9">
-              <button type="button">Calcular</button>
-            </div>
-          </div>
+          <FreteCalculator
+            :items="freteItems"
+          />
 
           <div class="purchase-actions">
             <div class="qty-selector">
@@ -143,10 +139,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cartStore'
 import api from '../../services/api'
+import FreteCalculator from '../../components/storefront/FreteCalculator.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -156,6 +153,12 @@ const product = ref(null)
 const loading = ref(true)
 const activeImage = ref('')
 const qty = ref(1)
+
+// Reflete a quantidade selecionada no cálculo de frete
+const freteItems = computed(() => {
+  if (!product.value) return []
+  return [{ product_id: product.value.id, quantity: qty.value }]
+})
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
