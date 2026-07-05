@@ -64,9 +64,10 @@
             </div>
           </div>
 
-          <FreteCalculator
-            :items="freteItems"
-          />
+          <FreteCalculator 
+      v-if="product" 
+      :items="[{ product_id: product.id, quantity: 1 }]" 
+   />
 
           <div class="purchase-actions">
             <div class="qty-selector">

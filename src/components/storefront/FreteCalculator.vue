@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import api from '../../services/api' // Ajuste o path se necessário
+import api from '../../services/api' // Ajuste o path para a sua instância axios
 
 // O componente recebe os itens que serão calculados.
 // Exemplo: [{ product_id: 'uuid', quantity: 1 }]
@@ -26,11 +26,8 @@ const maskCep = () => {
 }
 
 const calcularFrete = async () => {
-  // Limpa a máscara do CEP antes de validar e enviar
-  const cleanCep = cep.value.replace(/\D/g, '')
-
   // Validação básica do tamanho do CEP
-  if (cleanCep.length !== 8) {
+  if (cep.value.replace(/\D/g, '').length !== 8) {
     errorMessage.value = 'Digite um CEP válido com 8 dígitos.'
     return
   }
@@ -45,14 +42,8 @@ const calcularFrete = async () => {
   results.value = null
 
   try {
-    // ---------------------------------------------------------
-    // CORREÇÕES APLICADAS AQUI:
-    // 1. URL alterada para a rota real: '/orders/shipping/simulate/'
-    // 2. Chave do payload alterada de 'cep_destino' para 'zip_code'
-    // 3. Enviando o CEP limpo (cleanCep) sem o traço
-    // ---------------------------------------------------------
-    const response = await api.post('/orders/shipping/simulate/', {
-      zip_code: cleanCep,
+    const response = await api.post('/shipping/calculate/', {
+      cep_destino: cep.value,
       items: props.items
     })
     

@@ -39,7 +39,11 @@ const formData = ref({
   stock: 0,
   description: '',
   category: '',
-  brand: ''
+  brand: '',
+  weight_kg: '',
+  length_cm: '',
+  width_cm: '',
+  height_cm: ''
 })
 
 const selectedFiles = ref([])
@@ -127,7 +131,11 @@ const openModal = (product = null) => {
       description: product.description || '',
       // Forçamos a conversão para String para o <select> reconhecer o item de imediato
       category: product.category ? String(product.category) : '',
-      brand: product.brand ? String(product.brand) : ''
+      brand: product.brand ? String(product.brand) : '',
+      weight_kg: product.weight_kg || '',
+      length_cm: product.length_cm || '',
+      width_cm: product.width_cm || '',
+      height_cm: product.height_cm || ''
     }
   } else {
     isEditing.value = false
@@ -140,7 +148,11 @@ const openModal = (product = null) => {
       stock: 0,
       description: '',
       category: '',
-      brand: ''
+      brand: '',
+      weight_kg: '',
+      length_cm: '',
+      width_cm: '',
+      height_cm: ''
     }
   }
   showModal.value = true
@@ -257,6 +269,18 @@ const saveProduct = async () => {
     }
     if (formData.value.brand) {
       data.append('brand', formData.value.brand)
+    }
+    if (formData.value.weight_kg) {
+      data.append('weight_kg', formData.value.weight_kg)
+    }
+    if (formData.value.length_cm) {
+      data.append('length_cm', formData.value.length_cm)
+    }
+    if (formData.value.width_cm) {
+      data.append('width_cm', formData.value.width_cm)
+    }
+    if (formData.value.height_cm) {
+      data.append('height_cm', formData.value.height_cm)
     }
 
     selectedFiles.value.forEach(file => {
@@ -458,6 +482,28 @@ onMounted(() => {
               <div class="form-group">
                 <label>Estoque</label>
                 <input type="number" v-model="formData.stock" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Peso (kg)</label>
+                <input type="number" step="0.01" v-model="formData.weight_kg" placeholder="1.50">
+              </div>
+              <div class="form-group">
+                <label>Comprimento (cm)</label>
+                <input type="number" step="0.1" v-model="formData.length_cm" placeholder="16">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Largura (cm)</label>
+                <input type="number" step="0.1" v-model="formData.width_cm" placeholder="11">
+              </div>
+              <div class="form-group">
+                <label>Altura (cm)</label>
+                <input type="number" step="0.1" v-model="formData.height_cm" placeholder="2">
               </div>
             </div>
 
