@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../../services/api'
+import { useProductStore } from '../../stores/productStore'
+
+const productStore = useProductStore()
 
 const products = ref([])
 const categories = ref([])
@@ -9,6 +12,14 @@ const isLoading = ref(true)
 const isSaving = ref(false)
 const showModal = ref(false)
 const isEditing = ref(false)
+
+const showCategoryDialog = ref(false)
+const newCategoryName = ref('')
+const isSavingNewCategory = ref(false)
+
+const showBrandDialog = ref(false)
+const newBrandName = ref('')
+const isSavingNewBrand = ref(false)
 
 const filters = ref({
   search: '',
@@ -26,7 +37,11 @@ const formData = ref({
   stock: 0,
   description: '',
   category: '',
-  brand: ''
+  brand: '',
+  weight_kg: '',
+  length_cm: '',
+  width_cm: '',
+  height_cm: ''
 })
 
 const selectedFiles = ref([])
@@ -67,55 +82,33 @@ const filteredProducts = computed(() => {
   let result = products.value
 
   if (filters.value.search) {
-    const q = filters.value.search.toLowerCase()
-    result = result.filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      (p.sku && p.sku.toLowerCase().includes(q)) || 
-      (p.oem_code && p.oem_code.toLowerCase().includes(q))
-    )
+    const q = filters.value.search.toString().toLowerCase().trim()
+    result = result.filter(p => {
+      const name = p.name ? p.name.toString().toLowerCase() : ''
+      const sku = p.sku ? p.sku.toString().toLowerCase() : ''
+      const oem = p.oem_code ? p.oem_code.toString().toLowerCase() : ''
+      return name.includes(q) || sku.includes(q) || oem.includes(q)
+    })
   }
 
   if (filters.value.category) {
-    const cat = filters.value.category.toString()
-    result = result.filter(p => p.category && p.category.toString() === cat)
+    const catFilter = filters.value.category.toString()
+    result = result.filter(p => p.category && p.category.toString() === catFilter)
   }
 
   if (filters.value.brand) {
-    const br = filters.value.brand.toString()
-    result = result.filter(p => p.brand && p.brand.toString() === br)
+    const brandFilter = filters.value.brand.toString()
+    result = result.filter(p => p.brand && p.brand.toString() === brandFilter)
   }
 
   if (filters.value.stock === 'in_stock') {
-    result = result.filter(p => p.stock > 0)
+    result = result.filter(p => Number(p.stock) > 0)
   } else if (filters.value.stock === 'out_of_stock') {
-    result = result.filter(p => p.stock <= 0)
+    result = result.filter(p => Number(p.stock) <= 0)
   }
 
   return result
 })
-
-const clearFilters = () => {
-  filters.value = {
-    search: '',
-    category: '',
-    brand: '',
-    stock: ''
-  }
-}
-
-const handleFileUpload = (event) => {
-  const files = Array.from(event.target.files)
-  files.forEach(file => {
-    selectedFiles.value.push(file)
-    imagePreviews.value.push(URL.createObjectURL(file))
-  })
-  event.target.value = ''
-}
-
-const removeImage = (index) => {
-  selectedFiles.value.splice(index, 1)
-  imagePreviews.value.splice(index, 1)
-}
 
 const openModal = (product = null) => {
   selectedFiles.value = []
@@ -131,8 +124,12 @@ const openModal = (product = null) => {
       price: product.price,
       stock: product.stock || 0,
       description: product.description || '',
-      category: product.category || '',
-      brand: product.brand || ''
+      category: product.category ? String(product.category) : '',
+      brand: product.brand ? String(product.brand) : '',
+      weight_kg: product.weight_kg || '',
+      length_cm: product.length_cm || '',
+      width_cm: product.width_cm || '',
+      height_cm: product.height_cm || ''
     }
   } else {
     isEditing.value = false
@@ -145,7 +142,11 @@ const openModal = (product = null) => {
       stock: 0,
       description: '',
       category: '',
-      brand: ''
+      brand: '',
+      weight_kg: '',
+      length_cm: '',
+      width_cm: '',
+      height_cm: ''
     }
   }
   showModal.value = true
@@ -153,6 +154,99 @@ const openModal = (product = null) => {
 
 const closeModal = () => {
   showModal.value = false
+}
+
+const closeCategoryDialog = () => {
+  showCategoryDialog.value = false
+  newCategoryName.value = ''
+}
+
+const submitNewCategory = async () => {
+  if (!newCategoryName.value.trim()) return
+  isSavingNewCategory.value = true
+  try {
+    const newCat = await productStore.createCategory(newCategoryName.value.trim())
+    categories.value.push(newCat) 
+    formData.value.category = newCat.id 
+    closeCategoryDialog()
+  } catch (error) {
+    let errorMsg = 'Erro ao criar categoria.'
+    if (error.response && error.response.data) errorMsg += ` Detalhes: ${JSON.stringify(error.response.data)}`
+    alert(errorMsg)
+  } finally {
+    isSavingNewCategory.value = false
+  }
+}
+
+const deleteSelectedCategory = async () => {
+  const catId = formData.value.category
+  if (!catId) return
+  
+  if (!confirm('Tem certeza que deseja excluir esta Categoria permanentemente? Se houver peças vinculadas a ela, a exclusão será bloqueada.')) return
+
+  try {
+    await productStore.deleteCategory(catId)
+    categories.value = categories.value.filter(c => c.id !== catId)
+    formData.value.category = '' 
+    if (filters.value.category === catId) filters.value.category = ''
+  } catch (error) {
+    alert('A exclusão foi bloqueada pelo Banco de Dados. Ela provavelmente já possui produtos vinculados.')
+  }
+}
+
+const closeBrandDialog = () => {
+  showBrandDialog.value = false
+  newBrandName.value = ''
+}
+
+const submitNewBrand = async () => {
+  if (!newBrandName.value.trim()) return
+  isSavingNewBrand.value = true
+  try {
+    const newBrand = await productStore.createBrand(newBrandName.value.trim())
+    brands.value.push(newBrand)
+    formData.value.brand = newBrand.id 
+    closeBrandDialog()
+  } catch (error) {
+    let errorMsg = 'Erro ao criar marca.'
+    if (error.response && error.response.data) errorMsg += ` Detalhes: ${JSON.stringify(error.response.data)}`
+    alert(errorMsg)
+  } finally {
+    isSavingNewBrand.value = false
+  }
+}
+
+const deleteSelectedBrand = async () => {
+  const brandId = formData.value.brand
+  if (!brandId) return
+  
+  if (!confirm('Tem certeza que deseja excluir esta Marca permanentemente? Se houver peças vinculadas a ela, a exclusão será bloqueada.')) return
+
+  try {
+    await productStore.deleteBrand(brandId)
+    brands.value = brands.value.filter(b => b.id !== brandId)
+    formData.value.brand = '' 
+    if (filters.value.brand === brandId) filters.value.brand = ''
+  } catch (error) {
+    alert('A exclusão foi bloqueada pelo Banco de Dados. Ela provavelmente já possui produtos vinculados.')
+  }
+}
+
+const handleFileUpload = (event) => {
+  const files = Array.from(event.target.files)
+  files.forEach(file => {
+    selectedFiles.value.push(file)
+    imagePreviews.value.push(URL.createObjectURL(file))
+  })
+  event.target.value = ''
+}
+
+const removeImage = (idx) => {
+  selectedFiles.value.splice(idx, 1)
+  const removedPreview = imagePreviews.value.splice(idx, 1)[0]
+  if (removedPreview.startsWith('blob:')) {
+    URL.revokeObjectURL(removedPreview)
+  }
 }
 
 const saveProduct = async () => {
@@ -177,21 +271,27 @@ const saveProduct = async () => {
     if (formData.value.brand) {
       data.append('brand', formData.value.brand)
     }
+    if (formData.value.weight_kg) {
+      data.append('weight_kg', formData.value.weight_kg)
+    }
+    if (formData.value.length_cm) {
+      data.append('length_cm', formData.value.length_cm)
+    }
+    if (formData.value.width_cm) {
+      data.append('width_cm', formData.value.width_cm)
+    }
+    if (formData.value.height_cm) {
+      data.append('height_cm', formData.value.height_cm)
+    }
 
     selectedFiles.value.forEach(file => {
       data.append('uploaded_images', file)
     })
 
-    const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }
-
     if (isEditing.value) {
-      await api.patch(`/products/${formData.value.id}/`, data, config)
+      await api.patch(`/products/${formData.value.id}/`, data)
     } else {
-      await api.post('/products/', data, config)
+      await api.post('/products/', data)
     }
     
     await fetchData()
@@ -199,7 +299,6 @@ const saveProduct = async () => {
   } catch (error) {
     let errorMsg = 'Erro ao salvar produto.'
     if (error.response && error.response.data) {
-      console.error('Detalhes do Erro:', error.response.data)
       const errData = error.response.data
       const firstKey = Object.keys(errData)[0]
       errorMsg = `Erro no campo "${firstKey}": ${errData[firstKey]}`
@@ -305,7 +404,9 @@ onMounted(() => {
                     </svg>
                   </div>
                   <div class="product-info">
-                    <span class="brand">{{ product.brand_name || 'Sem Marca' }}</span>
+                    <span class="brand">
+                      {{ product.brand_name || 'Sem Marca' }} • {{ product.category_name || 'Sem Categoria' }}
+                    </span>
                     <span class="name">{{ product.name }}</span>
                   </div>
                 </div>
@@ -324,10 +425,10 @@ onMounted(() => {
               </td>
               <td>
                 <div class="action-buttons">
-                  <button class="btn-icon edit" title="Editar" @click="openModal(product)">
+                  <button type="button" class="btn-icon edit" title="Editar" @click="openModal(product)">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
-                  <button class="btn-icon delete" title="Excluir" @click="deleteProduct(product.id)">
+                  <button type="button" class="btn-icon delete" title="Excluir" @click="deleteProduct(product.id)">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
@@ -342,7 +443,7 @@ onMounted(() => {
       <div class="modal-content">
         <div class="modal-header">
           <h2>{{ isEditing ? 'Editar Produto' : 'Novo Produto' }}</h2>
-          <button class="close-modal" @click="closeModal">
+          <button type="button" class="close-modal" @click="closeModal">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -380,18 +481,65 @@ onMounted(() => {
 
             <div class="form-row">
               <div class="form-group">
-                <label>Categoria</label>
-                <select v-model="formData.category">
-                  <option value="" disabled>Selecione...</option>
-                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                </select>
+                <label>Peso (kg)</label>
+                <input type="number" step="0.01" v-model="formData.weight_kg" placeholder="1.50">
               </div>
               <div class="form-group">
+                <label>Comprimento (cm)</label>
+                <input type="number" step="0.1" v-model="formData.length_cm" placeholder="16">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Largura (cm)</label>
+                <input type="number" step="0.1" v-model="formData.width_cm" placeholder="11">
+              </div>
+              <div class="form-group">
+                <label>Altura (cm)</label>
+                <input type="number" step="0.1" v-model="formData.height_cm" placeholder="2">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Categoria</label>
+                <div class="select-with-button">
+                  <select v-model="formData.category">
+                    <option value="" disabled>Selecione...</option>
+                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                  </select>
+                  <button type="button" class="btn-add-inline" @click="showCategoryDialog = true" title="Adicionar Nova Categoria">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-delete-inline" v-if="formData.category" @click="deleteSelectedCategory" title="Excluir Categoria Selecionada">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="form-group">
                 <label>Marca</label>
-                <select v-model="formData.brand">
-                  <option value="" disabled>Selecione...</option>
-                  <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
-                </select>
+                <div class="select-with-button">
+                  <select v-model="formData.brand">
+                    <option value="" disabled>Selecione...</option>
+                    <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
+                  </select>
+                  <button type="button" class="btn-add-inline" @click="showBrandDialog = true" title="Adicionar Nova Marca">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-delete-inline" v-if="formData.brand" @click="deleteSelectedBrand" title="Excluir Marca Selecionada">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -429,10 +577,128 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <div class="modal-overlay nested-modal" v-if="showCategoryDialog" @click.self="closeCategoryDialog">
+      <div class="modal-content small-modal">
+        <div class="modal-header">
+          <h2>Nova Categoria</h2>
+          <button type="button" class="close-modal" @click="closeCategoryDialog">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group full-width">
+            <label>Nome da Categoria</label>
+            <input type="text" v-model="newCategoryName" placeholder="Ex: Suspensão" @keyup.enter.prevent="submitNewCategory" autofocus>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" @click="closeCategoryDialog" :disabled="isSavingNewCategory">Cancelar</button>
+            <button type="button" class="btn-save" @click="submitNewCategory" :disabled="isSavingNewCategory">
+              {{ isSavingNewCategory ? 'Salvando...' : 'Salvar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay nested-modal" v-if="showBrandDialog" @click.self="closeBrandDialog">
+      <div class="modal-content small-modal">
+        <div class="modal-header">
+          <h2>Nova Marca</h2>
+          <button type="button" class="close-modal" @click="closeBrandDialog">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group full-width">
+            <label>Nome da Marca</label>
+            <input type="text" v-model="newBrandName" placeholder="Ex: Bosch" @keyup.enter.prevent="submitNewBrand" autofocus>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" @click="closeBrandDialog" :disabled="isSavingNewBrand">Cancelar</button>
+            <button type="button" class="btn-save" @click="submitNewBrand" :disabled="isSavingNewBrand">
+              {{ isSavingNewBrand ? 'Salvando...' : 'Salvar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.select-with-button {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.select-with-button select {
+  flex: 1;
+}
+
+.btn-add-inline {
+  background-color: var(--primary-light);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-add-inline:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-add-inline svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.btn-delete-inline {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-delete-inline:hover {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-delete-inline svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.nested-modal {
+  z-index: 150;
+  background-color: rgba(0, 0, 0, 0.65);
+}
+
+.small-modal {
+  max-width: 400px;
+}
+
 .admin-products-page {
   display: flex;
   flex-direction: column;
