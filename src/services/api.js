@@ -4,7 +4,6 @@ const api = axios.create({
   baseURL: 'https://dls-auto-pecas-api.onrender.com/api/v1',
   timeout: 15000,
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
 })
