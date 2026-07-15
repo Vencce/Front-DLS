@@ -10,7 +10,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('access_token')
+    const token = localStorage.getItem('accessToken')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -30,7 +30,7 @@ api.interceptors.response.use(
 
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
-      const refreshToken = localStorage.getItem('refresh_token')
+      const refreshToken = localStorage.getItem('refreshToken')
 
       if (refreshToken) {
         try {
@@ -38,13 +38,13 @@ api.interceptors.response.use(
             refresh: refreshToken
           })
           
-          localStorage.setItem('access_token', response.data.access)
+          localStorage.setItem('accessToken', response.data.access)
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`
           
           return api(originalRequest)
         } catch (refreshError) {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
           window.location.href = '/admin/login'
           return Promise.reject(refreshError)
         }

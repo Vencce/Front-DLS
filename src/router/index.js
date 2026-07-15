@@ -56,10 +56,13 @@ const router = createRouter({
 
 router.beforeEach(async (to, from) => {
   const authStore = useAuthStore()
-  
-  if (!authStore.user && authStore.token) {
-    await authStore.fetchUser()
-  }
+
+  // authStore.token e authStore.fetchUser() não existem (o state se chama
+  // accessToken, e a action se chama initAuth) — por isso essa restauração
+  // de sessão nunca rodava de verdade. initAuth() já é idempotente: só faz
+  // trabalho de verdade na primeira vez que existe um token sem usuário
+  // carregado, então é seguro chamar em toda navegação.
+  await authStore.initAuth()
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
