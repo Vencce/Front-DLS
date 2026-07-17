@@ -61,42 +61,50 @@ const router = useRouter()
           <p>Nossa equipe de especialistas está pronta para ajudar você a encontrar exatamente a peça que seu veículo precisa para voltar a rodar.</p>
           
           <ul class="contact-list">
-            <li>
-              <div class="contact-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-              </div>
-              <div class="contact-detail">
-                <strong>Telefone / WhatsApp</strong>
-                <span>(00) 00000-0000</span>
-              </div>
-            </li>
-            <li>
-              <div class="contact-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-              </div>
-              <div class="contact-detail">
-                <strong>E-mail</strong>
-                <span>contato@dlsautopecas.com.br</span>
-              </div>
-            </li>
-            <li>
-              <div class="contact-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              </div>
-              <div class="contact-detail">
-                <strong>Localização</strong>
-                <span>Endereço Completo da Loja, 123 - Bairro<br>Cidade, Estado - CEP 00000-000</span>
-              </div>
-            </li>
-          </ul>
+  <li>
+    <div class="contact-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+    </div>
+    <div class="contact-detail">
+      <strong>Telefone / WhatsApp</strong>
+      <a href="https://wa.me/554799997315" target="_blank" rel="noopener" class="contact-link">(47) 9999-7315</a>
+    </div>
+  </li>
+  <li>
+    <div class="contact-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+    </div>
+    <div class="contact-detail">
+      <strong>E-mail</strong>
+      <a href="mailto:contato@dlsautopecas.com.br" class="contact-link">contato@dlsautopecas.com.br</a>
+    </div>
+  </li>
+  <li>
+    <div class="contact-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+    </div>
+    <div class="contact-detail">
+      <strong>Localização</strong>
+      <span>Rua São Paulo, 3339, Itaum<br>Joinville - SC, 89210-001, Brasil</span>
+    </div>
+  </li>
+</ul>
           
           <button class="btn-primary" @click="router.push('/catalogo')">Acessar Nosso Catálogo</button>
         </div>
 
-        <div class="map-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
-          <span>Mapa da Loja</span>
-        </div>
+        <div class="map-embed">
+  <iframe
+    src="https://www.google.com/maps?q=Rua%20S%C3%A3o%20Paulo%2C%203339%2C%20Itaum%2C%20Joinville%20-%20SC%2C%2089210-001%2C%20Brasil&output=embed"
+    width="100%"
+    height="100%"
+    style="border:0"
+    allowfullscreen="false"
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade"
+    title="Localização DLS Auto Peças no Google Maps"
+  ></iframe>
+</div>
       </div>
     </div>
   </div>
@@ -408,24 +416,28 @@ const router = useRouter()
   box-shadow: 0 10px 15px -3px rgba(0, 168, 89, 0.3);
 }
 
-.map-placeholder {
+.map-embed {
+  min-height: 300px;
   background-color: var(--surface-hover);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  gap: 1rem;
+}
+
+.map-embed iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
   min-height: 300px;
 }
 
-.map-placeholder svg {
-  width: 4rem;
-  height: 4rem;
+.contact-link {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
-.map-placeholder span {
-  font-size: 1.1rem;
-  font-weight: 600;
+.contact-link:hover {
+  color: var(--primary-light);
+  text-decoration: underline;
 }
 </style>
