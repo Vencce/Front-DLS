@@ -1,6 +1,6 @@
 <template>
   <div class="home-page">
-    <section class="hero-section" v-animate>
+    <section class="hero-section" :class="{ 'hero-dark': themeStore.theme === 'dark' }" v-animate>
       <div class="hero-background-glow"></div>
       <div class="container hero-grid">
         <div class="hero-text">
@@ -165,9 +165,11 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductStore } from '../../stores/productStore'
+import { useThemeStore } from '../../stores/themeStore'
 
 const router = useRouter()
 const productStore = useProductStore()
+const themeStore = useThemeStore()
 
 const heroProducts = computed(() => {
   return productStore.products.slice(0, 2)
@@ -214,6 +216,11 @@ onMounted(() => {
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
+  transition: background 0.3s ease;
+}
+
+.hero-section.hero-dark {
+  background: linear-gradient(135deg, #081a10 0%, #0a331a 100%);
 }
 
 .hero-background-glow {
