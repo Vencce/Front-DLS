@@ -46,10 +46,14 @@
             <div class="form-grid">
               <div class="input-group cep-group">
                 <label for="cep">CEP</label>
-                <div class="cep-wrapper">
+               <div class="cep-wrapper">
                   <input type="text" id="cep" v-model="checkoutData.cep" required maxlength="9">
-                  <button type="button" class="btn-search-cep">Buscar</button>
+                  <button type="button" class="btn-search-cep" @click="searchCep" :disabled="cepLoading">
+                    {{ cepLoading ? 'Calculando...' : 'Buscar' }}
+                  </button>
                 </div>
+              
+<span v-if="cepError" class="cep-error">{{ cepError }}</span>
               </div>
               <div class="input-group full-width">
                 <label for="street">Logradouro (Rua, Avenida)</label>
@@ -106,6 +110,23 @@
               </div>
             </div>
           </div>
+          <div class="form-section" v-if="shippingOptions.length > 0">
+  <div class="section-title">
+    <h2>Opções de Entrega</h2>
+  </div>
+  <div class="shipping-options">
+    <label
+      v-for="(option, index) in shippingOptions"
+      :key="option.service"
+      class="shipping-option"
+      :class="{ active: selectedShippingIndex === index }"
+    >
+      <input type="radio" :value="index" v-model="selectedShippingIndex">
+      <span>{{ option.service }} — {{ option.days }} dias úteis</span>
+      <strong>{{ formatPrice(parseFloat(option.price)) }}</strong>
+    </label>
+  </div>
+</div>
 
           <div class="form-section">
             <div class="section-title">
@@ -150,23 +171,23 @@
             <div v-if="checkoutData.paymentMethod === 'credit_card'" class="credit-card-form form-grid">
               <div class="input-group full-width">
                 <label for="cardNumber">Número do Cartão</label>
-                <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" required>
+                <input type="text" id="cardNumber" v-model="checkoutData.cardNumber" placeholder="0000 0000 0000 0000" required>
               </div>
               <div class="input-group full-width">
                 <label for="cardName">Nome Impresso no Cartão</label>
-                <input type="text" id="cardName" placeholder="Ex: JOAO DA SILVA" required>
+                <input type="text" id="cardName" v-model="checkoutData.cardName" placeholder="Ex: JOAO DA SILVA" required>
               </div>
               <div class="input-group">
                 <label for="cardExpiry">Validade (MM/AA)</label>
-                <input type="text" id="cardExpiry" placeholder="12/29" required>
+                <input type="text" id="cardExpiry" v-model="checkoutData.cardExpiry" placeholder="12/29" required>
               </div>
               <div class="input-group">
                 <label for="cardCvv">CVV</label>
-                <input type="text" id="cardCvv" placeholder="123" required>
+                <input type="text" id="cardCvv" v-model="checkoutData.cardCvv" placeholder="123" required>
               </div>
               <div class="input-group full-width">
                 <label for="installments">Parcelas</label>
-                <select id="installments" required>
+                <select id="installments" v-model="checkoutData.installments" required>
                   <option value="1">1x de {{ formatPrice(cartStore.cartTotal) }} sem juros</option>
                   <option value="2">2x de {{ formatPrice(cartStore.cartTotal / 2) }} sem juros</option>
                   <option value="3">3x de {{ formatPrice(cartStore.cartTotal / 3) }} sem juros</option>
@@ -207,7 +228,7 @@
             </div>
             <div class="summary-line">
               <span>Frete (Transportadora)</span>
-              <span>R$ 45,90</span>
+              <span>{{ formatPrice(selectedShippingFee) }}</span>
             </div>
             <div class="summary-line discount" v-if="checkoutData.paymentMethod === 'pix'">
               <span>Desconto PIX (5%)</span>
@@ -215,8 +236,8 @@
             </div>
             <div class="summary-line total">
               <span>Total a pagar</span>
-              <span v-if="checkoutData.paymentMethod === 'pix'">{{ formatPrice((cartStore.cartTotal * 0.95) + 45.90) }}</span>
-              <span v-else>{{ formatPrice(cartStore.cartTotal + 45.90) }}</span>
+              <span v-if="checkoutData.paymentMethod === 'pix'">{{ formatPrice((cartStore.cartTotal * 0.95) + selectedShippingFee) }}</span>
+              <span v-else>{{ formatPrice(cartStore.cartTotal + selectedShippingFee) }}</span>
             </div>
           </div>
 
@@ -236,51 +257,169 @@
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cartStore'
 import { useAuthStore } from '../../stores/authStore'
+import { useOrderStore } from '../../stores/orderStore'
+import api from '../../services/api'
 
 const router = useRouter()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const orderStore = useOrderStore()
 
 const checkoutData = reactive({
-  fullName: '',
-  email: '',
-  cpf: '',
-  phone: '',
-  cep: '',
-  street: '',
-  number: '',
-  complement: '',
-  neighborhood: '',
-  city: '',
-  state: '',
-  paymentMethod: 'pix'
+  fullName: '', email: '', cpf: '', phone: '',
+  cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
+  paymentMethod: 'pix',
+  cardNumber: '', cardName: '', cardExpiry: '', cardCvv: '', installments: '1',
 })
+
+const cepLoading = ref(false)
+const cepError = ref('')
+const shippingOptions = ref([])
+const selectedShippingIndex = ref(null)
+
+const selectedShippingFee = computed(() => {
+  const opt = shippingOptions.value[selectedShippingIndex.value]
+  return opt ? parseFloat(opt.price) : 0
+})
+
+const searchCep = async () => {
+  const cleanCep = checkoutData.cep.replace(/\D/g, '')
+  if (cleanCep.length !== 8) {
+    cepError.value = 'CEP inválido.'
+    return
+  }
+
+  cepError.value = ''
+  cepLoading.value = true
+  shippingOptions.value = []
+  selectedShippingIndex.value = null
+
+  try {
+    const viaCepResponse = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
+    const viaCepData = await viaCepResponse.json()
+
+    if (viaCepData.erro) {
+      cepError.value = 'CEP não encontrado.'
+      return
+    }
+
+    checkoutData.street = viaCepData.logradouro || ''
+    checkoutData.neighborhood = viaCepData.bairro || ''
+    checkoutData.city = viaCepData.localidade || ''
+    checkoutData.state = viaCepData.uf || ''
+
+    const shippingResponse = await api.post('/orders/shipping/simulate/', {
+      cep_destino: cleanCep,
+      items: cartStore.items.map(item => ({ product_id: item.id, quantity: item.quantity })),
+    })
+
+    shippingOptions.value = shippingResponse.data
+    if (shippingOptions.value.length > 0) {
+      selectedShippingIndex.value = 0
+    }
+  } catch (err) {
+    cepError.value = err.response?.data?.error || 'Não foi possível calcular o frete agora.'
+  } finally {
+    cepLoading.value = false
+  }
+}
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
-
-const processCheckout = () => {
+const processCheckout = async () => {
   if (cartStore.items.length === 0) return
-  alert('Pedido processado com sucesso! (Integração com backend em breve)')
-  cartStore.clearCart()
-  router.push('/')
+  if (selectedShippingIndex.value === null) {
+    alert('Selecione uma opção de frete antes de continuar.')
+    return
+  }
+
+  const chosenShipping = shippingOptions.value[selectedShippingIndex.value]
+
+  const orderPayload = {
+    customer_name: checkoutData.fullName,
+    customer_email: checkoutData.email,
+    customer_cpf: checkoutData.cpf,
+    customer_phone: checkoutData.phone,
+    zip_code: checkoutData.cep,
+    street: checkoutData.street,
+    number: checkoutData.number,
+    complement: checkoutData.complement,
+    district: checkoutData.neighborhood,
+    city: checkoutData.city,
+    state: checkoutData.state,
+    shipping_service: chosenShipping.service,
+    shipping_fee: chosenShipping.price,
+    items: cartStore.items.map(item => ({ product_id: item.id, quantity: item.quantity })),
+  }
+
+  const created = await orderStore.createOrder(orderPayload)
+  if (!created) {
+    alert(orderStore.error || 'Erro ao criar o pedido.')
+    return
+  }
+
+  try {
+    const response = await api.post(`/orders/${orderStore.lastOrder.id}/pay/`, buildPaymentPayload())
+    handlePaymentResult(response.data)
+  } catch (err) {
+    alert(err.response?.data?.error || 'Erro ao processar o pagamento.')
+  }
 }
 
-onMounted(() => {
-  if (cartStore.items.length === 0) {
-    router.push('/carrinho')
+const detectCardBrand = (number) => {
+  const n = number.replace(/\s/g, '')
+  if (/^4/.test(n)) return 'visa'
+  if (/^5[1-5]/.test(n)) return 'mastercard'
+  if (/^3[47]/.test(n)) return 'amex'
+  if (/^6(011|5)/.test(n)) return 'discover'
+  if (/^36/.test(n)) return 'diners'
+  return 'visa' // fallback — bandeiras nacionais tipo Elo têm faixas mais complexas de detectar
+}
+
+const buildPaymentPayload = () => {
+  if (checkoutData.paymentMethod === 'credit_card') {
+    const [expMonth, expYearShort] = checkoutData.cardExpiry.split('/')
+    return {
+      payment_method: 'credit_card',
+      installments: checkoutData.installments,
+      card: {
+        holder: checkoutData.cardName,
+        number: checkoutData.cardNumber.replace(/\s/g, ''),
+        expiry_month: expMonth,
+        expiry_year: `20${expYearShort}`,
+        cvv: checkoutData.cardCvv,
+        brand: detectCardBrand(checkoutData.cardNumber),
+      },
+    }
   }
-  
-  if (authStore.user) {
-    checkoutData.fullName = authStore.user.first_name || ''
-    checkoutData.email = authStore.user.email || ''
+  if (checkoutData.paymentMethod === 'boleto') {
+    const due = new Date()
+    due.setDate(due.getDate() + 3)
+    return { payment_method: 'boleto', due_date: due.toISOString().split('T')[0] }
   }
-})
+  return { payment_method: 'pix' }
+}
+
+const handlePaymentResult = (data) => {
+  // TODO: isso ainda usa alert() como solução temporária — o ideal é uma
+  // tela de confirmação de verdade mostrando o QR Code (Pix) ou o link do
+  // boleto, já que o iPag devolve isso pronto em data.pix/data.boleto.
+  if (data.pix?.qrcode64) {
+    alert('Pix gerado! Escaneie o QR Code para pagar.')
+  } else if (data.boleto) {
+    alert('Boleto gerado!')
+  } else if (data.status_code === 8) {
+    alert('Pagamento aprovado!')
+  } else {
+    alert(data.status_message || 'Pagamento em processamento.')
+  }
+  router.push('/')
+}
 </script>
 
 <style scoped>
