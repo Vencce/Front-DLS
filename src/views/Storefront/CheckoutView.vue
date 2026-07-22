@@ -333,12 +333,15 @@ const formatPrice = (value) => {
 }
 const processCheckout = async () => {
   if (cartStore.items.length === 0) return
-  if (selectedShippingIndex.value === null) {
-    alert('Selecione uma opção de frete antes de continuar.')
-    return
-  }
 
-  const chosenShipping = shippingOptions.value[selectedShippingIndex.value]
+  // ⚠️ TEMPORÁRIO — bypass do frete só pra testar o gateway de pagamento
+  // enquanto a Loggi não está configurada. REMOVER esse fallback assim que
+  // o frete real estiver funcionando, senão o cliente consegue finalizar
+  // pedido sem frete de verdade sendo calculado/cobrado.
+  const chosenShipping = shippingOptions.value[selectedShippingIndex.value] || {
+    service: 'A DEFINIR (TESTE)',
+    price: 45,
+  }
 
   const orderPayload = {
     customer_name: checkoutData.fullName,
