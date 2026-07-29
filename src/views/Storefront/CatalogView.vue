@@ -22,6 +22,7 @@ const absMax = ref(1000.00)
 
 const isCategoryOpen = ref(true)
 const isBrandOpen = ref(true)
+const isMobileFilterOpen = ref(false)
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -58,6 +59,7 @@ const clearFilters = () => {
   sortOption.value = ''
   minPrice.value = absMin.value
   maxPrice.value = absMax.value
+  isMobileFilterOpen.value = false
 }
 
 const validateMin = () => {
@@ -139,9 +141,34 @@ onMounted(async () => {
     </div>
 
     <div class="container layout-grid">
-      <aside class="filter-sidebar">
+      
+      <div class="mobile-controls hide-desktop">
+        <div class="search-box flex-grow">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" v-model="filters.search" placeholder="Buscar peça...">
+        </div>
+        <button class="btn-toggle-filters" @click="isMobileFilterOpen = true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filtros
+        </button>
+      </div>
+
+      <div class="filter-overlay hide-desktop" :class="{ 'is-active': isMobileFilterOpen }" @click="isMobileFilterOpen = false"></div>
+
+      <aside class="filter-sidebar" :class="{ 'is-open': isMobileFilterOpen }">
         
-        <div class="filter-section search-section">
+        <div class="mobile-filter-header hide-desktop">
+          <h3>Filtrar Catálogo</h3>
+          <button class="btn-close-filter" @click="isMobileFilterOpen = false">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div class="filter-section search-section hide-mobile">
           <div class="search-box">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -302,6 +329,12 @@ onMounted(async () => {
             Limpar Filtros
           </button>
         </div>
+
+        <div class="filter-section hide-desktop mobile-apply-section">
+          <button class="btn-apply-mobile" @click="isMobileFilterOpen = false">
+            Ver Resultados
+          </button>
+        </div>
       </aside>
 
       <main class="products-area">
@@ -349,7 +382,7 @@ onMounted(async () => {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                {{ product.stock > 0 ? 'Comprar' : 'Sem Estoque' }}
+                <span class="btn-text">{{ product.stock > 0 ? 'Comprar' : 'Sem Estoque' }}</span>
               </button>
             </div>
           </div>
@@ -395,26 +428,14 @@ onMounted(async () => {
 
 .layout-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
   align-items: start;
-}
-
-@media (min-width: 992px) {
-  .layout-grid {
-    grid-template-columns: 280px 1fr;
-  }
 }
 
 .filter-sidebar {
   background-color: var(--surface-color, #ffffff);
-  border: 1px solid var(--border-color, #b3b3b3);
   border-radius: 12px;
-  overflow: hidden;
   font-family: Arial, sans-serif;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  position: sticky;
-  top: 2rem;
+  position: relative;
 }
 
 .filter-section {
@@ -788,14 +809,11 @@ onMounted(async () => {
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
 }
 
 .product-card {
   background-color: var(--surface-color, #ffffff);
   border: 1px solid var(--border-color, #b3b3b3);
-  border-radius: 1rem;
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
@@ -809,10 +827,8 @@ onMounted(async () => {
 }
 
 .card-image {
-  aspect-ratio: 4/3;
   width: 100%;
   background-color: var(--surface-hover, #f9f9f9);
-  padding: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -836,33 +852,23 @@ onMounted(async () => {
   color: var(--border-color, #b3b3b3);
 }
 
-.img-placeholder svg {
-  width: 3rem;
-  height: 3rem;
-}
-
 .card-content {
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
 }
 
 .product-brand {
-  font-size: 0.75rem;
   color: var(--text-muted, #666666);
   text-transform: uppercase;
   font-weight: 800;
   letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
 }
 
 .product-name {
-  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-main, #333333);
   margin: 0 0 0.5rem 0;
-  line-height: 1.3;
   cursor: pointer;
   transition: color 0.2s;
   display: -webkit-box;
@@ -876,27 +882,21 @@ onMounted(async () => {
 }
 
 .product-codes {
-  font-size: 0.8rem;
   color: var(--text-muted, #666666);
-  margin-bottom: 1rem;
 }
 
 .product-price {
   margin-top: auto;
-  margin-bottom: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
 }
 
 .price-value {
-  font-size: 1.5rem;
   font-weight: 900;
   color: var(--primary-dark, #006b2e);
 }
 
 .stock-status {
-  font-size: 0.8rem;
   font-weight: 700;
   color: #059669;
 }
@@ -910,14 +910,10 @@ onMounted(async () => {
   background-color: var(--primary-light, #008a3c);
   color: #ffffff;
   border: none;
-  padding: 0.85rem;
-  border-radius: 0.5rem;
   font-weight: 800;
-  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -932,35 +928,270 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-.btn-add-cart svg {
-  width: 1.25rem;
-  height: 1.25rem;
+.mobile-controls {
+  display: flex;
+  align-items: center;
 }
 
-@media (max-width: 768px) {
-  .catalog-header {
-    padding: 2rem 0;
-  }
+.flex-grow {
+  flex-grow: 1;
+}
 
-  .catalog-header h1 {
-    font-size: 1.75rem;
-  }
+.btn-toggle-filters {
+  background-color: var(--surface-color);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  cursor: pointer;
+}
 
-  .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-  }
+.btn-apply-mobile {
+  width: 100%;
+  background-color: var(--primary-light);
+  color: #ffffff;
+  border: none;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+}
 
-  .card-content {
-    padding: 1rem;
-  }
+@media (max-width: 575.98px) {
+  /* Estilos para smartphones pequenos e médios */
+  .hide-mobile { display: none !important; }
+  .catalog-page { padding-bottom: 3rem; }
+  .catalog-header { padding: 1.5rem 0; margin-bottom: 1.5rem; }
+  .catalog-header h1 { font-size: 1.5rem; }
+  .catalog-header p { font-size: 0.9rem; }
+  .layout-grid { grid-template-columns: 1fr; gap: 1rem; }
+  
+  .mobile-controls { gap: 0.5rem; margin-bottom: 1rem; }
+  .mobile-controls .search-box input { padding: 0.75rem 1rem 0.75rem 2.5rem; font-size: 0.9rem; }
+  .btn-toggle-filters { padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; gap: 0.4rem; }
+  .btn-toggle-filters svg { width: 1.25rem; height: 1.25rem; }
 
-  .product-name {
-    font-size: 1rem;
+  .filter-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6); z-index: 1000;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s;
   }
+  .filter-overlay.is-active { opacity: 1; visibility: visible; }
+  
+  .filter-sidebar {
+    position: fixed; top: 0; left: -100%; width: 280px; height: 100vh;
+    z-index: 1001; border-radius: 0; border: none; border-right: 1px solid var(--border-color);
+    transition: left 0.3s ease; overflow-y: auto; box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+  }
+  .filter-sidebar.is-open { left: 0; }
+  
+  .mobile-filter-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem; border-bottom: 1px solid var(--border-color);
+    background: var(--surface-color); position: sticky; top: 0; z-index: 10;
+  }
+  .mobile-filter-header h3 { margin: 0; font-size: 1.1rem; color: var(--text-main); }
+  .btn-close-filter { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 0.25rem; }
+  .btn-close-filter svg { width: 1.5rem; height: 1.5rem; }
 
-  .price-value {
-    font-size: 1.25rem;
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+  .product-card { border-radius: 0.75rem; }
+  .card-image { padding: 0.5rem; height: 120px; }
+  .img-placeholder svg { width: 2rem; height: 2rem; }
+  
+  .card-content { padding: 0.6rem; }
+  .product-brand { font-size: 0.65rem; margin-bottom: 0.25rem; }
+  .product-name { font-size: 0.85rem; line-height: 1.2; margin-bottom: 0.4rem; }
+  .product-codes { font-size: 0.7rem; margin-bottom: 0.5rem; }
+  
+  .product-price { margin-bottom: 0.75rem; gap: 0.15rem; }
+  .price-value { font-size: 1.1rem; }
+  .stock-status { font-size: 0.7rem; }
+  
+  .btn-add-cart { padding: 0.6rem; font-size: 0.85rem; border-radius: 0.4rem; gap: 0.3rem; }
+  .btn-add-cart svg { width: 1rem; height: 1rem; }
+  .btn-text { font-size: 0.8rem; }
+  
+  .mobile-apply-section { padding-top: 0; padding-bottom: 2rem; }
+}
+
+/* 📱 Celulares grandes / modo paisagem (telas de 576px até 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  /* Estilos para smartphones maiores */
+  .hide-mobile { display: none !important; }
+  .catalog-page { padding-bottom: 4rem; }
+  .catalog-header { padding: 2rem 0; margin-bottom: 2rem; }
+  .catalog-header h1 { font-size: 1.85rem; }
+  .catalog-header p { font-size: 1rem; }
+  .layout-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  
+  .mobile-controls { gap: 0.75rem; margin-bottom: 1.5rem; }
+  .mobile-controls .search-box input { padding: 0.85rem 1rem 0.85rem 2.5rem; font-size: 0.95rem; }
+  .btn-toggle-filters { padding: 0.85rem 1.25rem; border-radius: 0.5rem; font-size: 0.95rem; gap: 0.5rem; }
+  .btn-toggle-filters svg { width: 1.35rem; height: 1.35rem; }
+
+  .filter-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6); z-index: 1000;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s;
   }
+  .filter-overlay.is-active { opacity: 1; visibility: visible; }
+  
+  .filter-sidebar {
+    position: fixed; top: 0; left: -100%; width: 300px; height: 100vh;
+    z-index: 1001; border-radius: 0; border: none; border-right: 1px solid var(--border-color);
+    transition: left 0.3s ease; overflow-y: auto; box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+  }
+  .filter-sidebar.is-open { left: 0; }
+  
+  .mobile-filter-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.5rem; border-bottom: 1px solid var(--border-color);
+    background: var(--surface-color); position: sticky; top: 0; z-index: 10;
+  }
+  .mobile-filter-header h3 { margin: 0; font-size: 1.2rem; color: var(--text-main); }
+  .btn-close-filter { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 0.25rem; }
+  .btn-close-filter svg { width: 1.5rem; height: 1.5rem; }
+
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .product-card { border-radius: 1rem; }
+  .card-image { padding: 1rem; height: 150px; }
+  .img-placeholder svg { width: 2.5rem; height: 2.5rem; }
+  
+  .card-content { padding: 1rem; }
+  .product-brand { font-size: 0.7rem; margin-bottom: 0.3rem; }
+  .product-name { font-size: 0.95rem; line-height: 1.25; margin-bottom: 0.5rem; }
+  .product-codes { font-size: 0.75rem; margin-bottom: 0.75rem; }
+  
+  .product-price { margin-bottom: 1rem; gap: 0.2rem; }
+  .price-value { font-size: 1.25rem; }
+  .stock-status { font-size: 0.75rem; }
+  
+  .btn-add-cart { padding: 0.75rem; font-size: 0.9rem; border-radius: 0.5rem; gap: 0.4rem; }
+  .btn-add-cart svg { width: 1.1rem; height: 1.1rem; }
+  
+  .mobile-apply-section { padding-top: 0; padding-bottom: 2.5rem; }
+}
+
+/* 📟 Tablets / iPad (telas de 768px até 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  /* Estilos específicos para iPad e tablets parecidos */
+  .hide-mobile { display: none !important; }
+  .catalog-page { padding-bottom: 5rem; }
+  .catalog-header { padding: 2.5rem 0; margin-bottom: 2.5rem; }
+  .catalog-header h1 { font-size: 2.25rem; }
+  .catalog-header p { font-size: 1.05rem; }
+  .layout-grid { grid-template-columns: 1fr; gap: 2rem; }
+  
+  .mobile-controls { gap: 1rem; margin-bottom: 2rem; }
+  .mobile-controls .search-box input { padding: 0.85rem 1.25rem 0.85rem 2.75rem; font-size: 1rem; }
+  .search-box svg { left: 1rem; width: 1.35rem; height: 1.35rem; }
+  .btn-toggle-filters { padding: 0.85rem 1.5rem; border-radius: 0.5rem; font-size: 1rem; gap: 0.5rem; }
+  .btn-toggle-filters svg { width: 1.5rem; height: 1.5rem; }
+
+  .filter-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6); z-index: 1000;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s;
+  }
+  .filter-overlay.is-active { opacity: 1; visibility: visible; }
+  
+  .filter-sidebar {
+    position: fixed; top: 0; left: -100%; width: 320px; height: 100vh;
+    z-index: 1001; border-radius: 0; border: none; border-right: 1px solid var(--border-color);
+    transition: left 0.3s ease; overflow-y: auto; box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+  }
+  .filter-sidebar.is-open { left: 0; }
+  
+  .mobile-filter-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.5rem; border-bottom: 1px solid var(--border-color);
+    background: var(--surface-color); position: sticky; top: 0; z-index: 10;
+  }
+  .mobile-filter-header h3 { margin: 0; font-size: 1.25rem; color: var(--text-main); }
+  .btn-close-filter { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 0.25rem; }
+  .btn-close-filter svg { width: 1.75rem; height: 1.75rem; }
+
+  .products-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+  .product-card { border-radius: 1rem; }
+  .card-image { padding: 1.25rem; height: 180px; }
+  .img-placeholder svg { width: 3rem; height: 3rem; }
+  
+  .card-content { padding: 1.25rem; }
+  .product-brand { font-size: 0.75rem; margin-bottom: 0.4rem; }
+  .product-name { font-size: 1rem; line-height: 1.3; margin-bottom: 0.5rem; }
+  .product-codes { font-size: 0.8rem; margin-bottom: 1rem; }
+  
+  .product-price { margin-bottom: 1.25rem; gap: 0.25rem; }
+  .price-value { font-size: 1.35rem; }
+  .stock-status { font-size: 0.8rem; }
+  
+  .btn-add-cart { padding: 0.85rem; font-size: 0.95rem; border-radius: 0.5rem; gap: 0.5rem; }
+  .btn-add-cart svg { width: 1.25rem; height: 1.25rem; }
+  
+  .mobile-apply-section { padding-top: 0; padding-bottom: 3rem; }
+}
+
+/* 💻 Notebooks / Telas médias (telas de 992px até 1199px) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  /* Estilos para notebooks e monitores menores */
+  .hide-desktop { display: none !important; }
+  .catalog-page { padding-bottom: 5rem; }
+  .catalog-header { padding: 3rem 0; margin-bottom: 3rem; }
+  .catalog-header h1 { font-size: 2.25rem; }
+  .catalog-header p { font-size: 1.05rem; }
+  .layout-grid { grid-template-columns: 260px 1fr; gap: 1.5rem; }
+  
+  .filter-sidebar { border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+  .products-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+  .product-card { border-radius: 1rem; }
+  .card-image { padding: 1.25rem; height: 180px; }
+  .img-placeholder svg { width: 3rem; height: 3rem; }
+  
+  .card-content { padding: 1.25rem; }
+  .product-brand { font-size: 0.75rem; margin-bottom: 0.4rem; }
+  .product-name { font-size: 1.05rem; line-height: 1.35; margin-bottom: 0.5rem; }
+  .product-codes { font-size: 0.8rem; margin-bottom: 1rem; }
+  
+  .product-price { margin-bottom: 1.25rem; gap: 0.25rem; }
+  .price-value { font-size: 1.4rem; }
+  .stock-status { font-size: 0.8rem; }
+  
+  .btn-add-cart { padding: 0.85rem; font-size: 0.95rem; border-radius: 0.5rem; gap: 0.5rem; }
+  .btn-add-cart svg { width: 1.25rem; height: 1.25rem; }
+}
+
+/* 🖥️ Computadores / Monitores grandes (telas acima de 1200px) */
+@media (min-width: 1200px) {
+  /* Estilos para computadores de mesa */
+  .hide-desktop { display: none !important; }
+  .catalog-page { padding-bottom: 6rem; }
+  .catalog-header { padding: 3.5rem 0; margin-bottom: 3.5rem; }
+  .catalog-header h1 { font-size: 2.75rem; }
+  .catalog-header p { font-size: 1.15rem; }
+  .layout-grid { grid-template-columns: 280px 1fr; gap: 2rem; }
+  
+  .filter-sidebar { border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+  .products-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+  .product-card { border-radius: 1.25rem; }
+  .card-image { padding: 1.5rem; height: 200px; }
+  .img-placeholder svg { width: 3.5rem; height: 3.5rem; }
+  
+  .card-content { padding: 1.5rem; }
+  .product-brand { font-size: 0.75rem; margin-bottom: 0.5rem; }
+  .product-name { font-size: 1.1rem; line-height: 1.4; margin-bottom: 0.5rem; }
+  .product-codes { font-size: 0.85rem; margin-bottom: 1rem; }
+  
+  .product-price { margin-bottom: 1.5rem; gap: 0.25rem; }
+  .price-value { font-size: 1.5rem; }
+  .stock-status { font-size: 0.85rem; }
+  
+  .btn-add-cart { padding: 1rem; font-size: 1rem; border-radius: 0.75rem; gap: 0.5rem; }
+  .btn-add-cart svg { width: 1.25rem; height: 1.25rem; }
 }
 </style>

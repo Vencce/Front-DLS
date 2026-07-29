@@ -1,3 +1,76 @@
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useCartStore } from '../../stores/cartStore'
+import api from '../../services/api'
+import FreteCalculator from '../../components/storefront/FreteCalculator.vue'
+
+const route = useRoute()
+const router = useRouter()
+const cartStore = useCartStore()
+
+const product = ref(null)
+const loading = ref(true)
+const activeImage = ref('')
+const qty = ref(1)
+
+const freteItems = computed(() => {
+  if (!product.value) return []
+  return [{ product_id: product.value.id, quantity: qty.value }]
+})
+
+const formatPrice = (value) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+const resolveImage = (imgPath) => {
+  if (!imgPath) return ''
+  return imgPath.startsWith('http') ? imgPath : `https://dls-auto-pecas-api.onrender.com${imgPath}`
+}
+
+const fetchProductDetails = async (id) => {
+  loading.value = true
+  try {
+    const response = await api.get(`/products/${id}/`)
+    product.value = response.data
+    if (product.value.images && product.value.images.length > 0) {
+      const mainImg = product.value.images.find(i => i.is_main) || product.value.images[0]
+      activeImage.value = mainImg.image
+    }
+  } catch (error) {
+    console.error('Erro ao carregar produto:', error)
+    router.push('/catalogo')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleAddToCart = () => {
+  if (!product.value || product.value.stock < 1) return
+  
+  cartStore.addItem({
+    id: product.value.id,
+    name: product.value.name,
+    price: parseFloat(product.value.price),
+    brand: product.value.brand_name || 'DLS Auto Peças',
+    image: resolveImage(activeImage.value),
+    quantity: qty.value
+  })
+}
+
+onMounted(() => {
+  if (route.params.id) {
+    fetchProductDetails(route.params.id)
+  }
+})
+
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    fetchProductDetails(newId)
+  }
+})
+</script>
+
 <template>
   <div class="product-page">
     <div class="container" v-if="loading">
@@ -65,9 +138,9 @@
           </div>
 
           <FreteCalculator 
-      v-if="product" 
-      :items="[{ product_id: product.id, quantity: 1 }]" 
-   />
+            v-if="product" 
+            :items="[{ product_id: product.id, quantity: 1 }]" 
+          />
 
           <div class="purchase-actions">
             <div class="qty-selector">
@@ -138,80 +211,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useCartStore } from '../../stores/cartStore'
-import api from '../../services/api'
-import FreteCalculator from '../../components/storefront/FreteCalculator.vue'
-
-const route = useRoute()
-const router = useRouter()
-const cartStore = useCartStore()
-
-const product = ref(null)
-const loading = ref(true)
-const activeImage = ref('')
-const qty = ref(1)
-
-// Reflete a quantidade selecionada no cálculo de frete
-const freteItems = computed(() => {
-  if (!product.value) return []
-  return [{ product_id: product.value.id, quantity: qty.value }]
-})
-
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-const resolveImage = (imgPath) => {
-  if (!imgPath) return ''
-  return imgPath.startsWith('http') ? imgPath : `https://dls-auto-pecas-api.onrender.com${imgPath}`
-}
-
-const fetchProductDetails = async (id) => {
-  loading.value = true
-  try {
-    const response = await api.get(`/products/${id}/`)
-    product.value = response.data
-    if (product.value.images && product.value.images.length > 0) {
-      const mainImg = product.value.images.find(i => i.is_main) || product.value.images[0]
-      activeImage.value = mainImg.image
-    }
-  } catch (error) {
-    console.error('Erro ao carregar produto:', error)
-    router.push('/catalogo')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleAddToCart = () => {
-  if (!product.value || product.value.stock < 1) return
-  
-  cartStore.addItem({
-    id: product.value.id,
-    name: product.value.name,
-    price: parseFloat(product.value.price),
-    brand: product.value.brand_name || 'DLS Auto Peças',
-    image: resolveImage(activeImage.value),
-    quantity: qty.value
-  })
-}
-
-onMounted(() => {
-  if (route.params.id) {
-    fetchProductDetails(route.params.id)
-  }
-})
-
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    fetchProductDetails(newId)
-  }
-})
-</script>
 
 <style scoped>
 .product-page {
@@ -287,12 +286,6 @@ watch(() => route.params.id, (newId) => {
   grid-template-columns: 1fr;
   gap: 3rem;
   margin-bottom: 4rem;
-}
-
-@media (min-width: 992px) {
-  .product-layout {
-    grid-template-columns: 1.1fr 0.9fr;
-  }
 }
 
 .product-gallery {
@@ -400,12 +393,6 @@ watch(() => route.params.id, (newId) => {
   line-height: 1.3;
 }
 
-@media (min-width: 768px) {
-  .product-title {
-    font-size: 2.25rem;
-  }
-}
-
 .product-codes {
   display: flex;
   flex-wrap: wrap;
@@ -465,68 +452,11 @@ watch(() => route.params.id, (newId) => {
   font-size: 0.9rem;
 }
 
-.shipping-calc {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  padding: 1.25rem;
-  border-radius: 0.75rem;
-  margin-bottom: 2rem;
-}
-
-.shipping-calc label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 0.75rem;
-}
-
-.cep-group {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.cep-group input {
-  flex-grow: 1;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  font-size: 1rem;
-  outline: none;
-}
-
-.cep-group input:focus {
-  border-color: var(--primary-light);
-}
-
-.cep-group button {
-  background-color: var(--surface-hover);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  padding: 0 1.25rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cep-group button:hover {
-  background-color: var(--border-color);
-}
-
 .purchase-actions {
   display: flex;
   gap: 1rem;
   margin-bottom: 2.5rem;
   flex-direction: column;
-}
-
-@media (min-width: 640px) {
-  .purchase-actions {
-    flex-direction: row;
-  }
 }
 
 .qty-selector {
@@ -659,6 +589,7 @@ watch(() => route.params.id, (newId) => {
   color: var(--text-muted);
   cursor: pointer;
   position: relative;
+  width: 100%;
 }
 
 .tab-btn.active {
@@ -712,12 +643,6 @@ watch(() => route.params.id, (newId) => {
   gap: 0.75rem;
 }
 
-@media (min-width: 640px) {
-  .compatibility-list {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
 .compatibility-list li {
   display: flex;
   align-items: center;
@@ -755,12 +680,6 @@ watch(() => route.params.id, (newId) => {
   gap: 1.25rem;
 }
 
-@media (min-width: 640px) {
-  .important-notice {
-    flex-direction: row;
-  }
-}
-
 .notice-icon {
   width: 3rem;
   height: 3rem;
@@ -794,5 +713,390 @@ watch(() => route.params.id, (newId) => {
 
 .notice-text strong {
   font-weight: 800;
+}
+
+@media (max-width: 575.98px) {
+  /* Estilos para smartphones pequenos e médios */
+  .product-page {
+    padding: 1rem 0 3rem 0;
+  }
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .breadcrumb {
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+    gap: 0.3rem;
+  }
+  .product-layout {
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  .main-image {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    aspect-ratio: 1/1;
+  }
+  .image-placeholder svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .image-placeholder span {
+    font-size: 0.9rem;
+  }
+  .thumbnail-list {
+    gap: 0.5rem;
+  }
+  .thumbnail-btn {
+    width: 60px;
+    height: 60px;
+    padding: 0.25rem;
+  }
+  .brand-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .product-title {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+  }
+  .product-codes {
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+  }
+  .code-item .label {
+    font-size: 0.7rem;
+  }
+  .code-item .value {
+    font-size: 0.9rem;
+  }
+  .highlight-code .value {
+    font-size: 1rem;
+    padding: 0.1rem 0.4rem;
+  }
+  .price-section {
+    margin-bottom: 1.5rem;
+  }
+  .price {
+    font-size: 2rem;
+  }
+  .pix-discount {
+    font-size: 0.9rem;
+  }
+  .installments {
+    font-size: 0.8rem;
+  }
+  .purchase-actions {
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .qty-selector {
+    width: 100%;
+    justify-content: space-between;
+    height: 50px;
+  }
+  .qty-selector button {
+    width: 50px;
+  }
+  .qty-selector span {
+    flex-grow: 1;
+  }
+  .btn-buy {
+    height: 50px;
+    font-size: 1rem;
+  }
+  .security-badges {
+    gap: 0.75rem;
+  }
+  .badge-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+  .badge-icon svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  .badge-text strong {
+    font-size: 0.85rem;
+  }
+  .badge-text span {
+    font-size: 0.75rem;
+  }
+  .product-details-tabs {
+    border-radius: 0.75rem;
+  }
+  .tab-btn {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+  .tab-content {
+    padding: 1.25rem;
+  }
+  .description-block {
+    margin-bottom: 2rem;
+  }
+  .description-block h3, 
+  .compatibility-section h3 {
+    font-size: 1.1rem;
+  }
+  .description-text {
+    font-size: 0.9rem;
+  }
+  .compatibility-section {
+    margin-bottom: 2rem;
+  }
+  .compatibility-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.75rem;
+  }
+  .comp-year {
+    margin-left: 0;
+    margin-top: 0.25rem;
+  }
+  .important-notice {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  .notice-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .notice-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .notice-text h3 {
+    font-size: 1rem;
+  }
+  .notice-text p {
+    font-size: 0.85rem;
+  }
+}
+
+/* 📱 Celulares grandes / modo paisagem (telas de 576px até 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  /* Estilos para smartphones maiores */
+  .product-page {
+    padding: 1.5rem 0 4rem 0;
+  }
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  .breadcrumb {
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .product-layout {
+    gap: 2.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .main-image {
+    padding: 1.25rem;
+    aspect-ratio: 1/1;
+  }
+  .thumbnail-list {
+    gap: 0.75rem;
+  }
+  .thumbnail-btn {
+    width: 70px;
+    height: 70px;
+    padding: 0.35rem;
+  }
+  .brand-badge {
+    font-size: 0.7rem;
+    margin-bottom: 0.85rem;
+  }
+  .product-title {
+    font-size: 1.6rem;
+    margin-bottom: 1.25rem;
+  }
+  .product-codes {
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+  }
+  .code-item .label {
+    font-size: 0.75rem;
+  }
+  .code-item .value {
+    font-size: 0.95rem;
+  }
+  .price {
+    font-size: 2.25rem;
+  }
+  .pix-discount {
+    font-size: 0.95rem;
+  }
+  .installments {
+    font-size: 0.85rem;
+  }
+  .purchase-actions {
+    flex-direction: row;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  .qty-selector {
+    width: 140px;
+  }
+  .btn-buy {
+    font-size: 1.05rem;
+  }
+  .security-badges {
+    gap: 0.85rem;
+  }
+  .badge-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  .badge-icon svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+  .badge-text strong {
+    font-size: 0.9rem;
+  }
+  .tab-btn {
+    padding: 1.15rem 1.5rem;
+    font-size: 0.95rem;
+  }
+  .tab-content {
+    padding: 1.5rem;
+  }
+  .description-block {
+    margin-bottom: 2.5rem;
+  }
+  .description-block h3, 
+  .compatibility-section h3 {
+    font-size: 1.15rem;
+  }
+  .description-text {
+    font-size: 0.95rem;
+  }
+  .compatibility-section {
+    margin-bottom: 2.5rem;
+  }
+  .compatibility-list {
+    grid-template-columns: 1fr;
+  }
+  .important-notice {
+    padding: 1.25rem;
+    gap: 1rem;
+    flex-direction: row;
+  }
+}
+
+/* 📟 Tablets / iPad (telas de 768px até 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  /* Estilos específicos para iPad e tablets parecidos */
+  .product-page {
+    padding: 2rem 0 5rem 0;
+  }
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  .product-layout {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  .product-gallery {
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .main-image {
+    padding: 1.5rem;
+    aspect-ratio: 4/3;
+  }
+  .thumbnail-btn {
+    width: 75px;
+    height: 75px;
+  }
+  .product-title {
+    font-size: 2rem;
+  }
+  .purchase-actions {
+    flex-direction: row;
+  }
+  .qty-selector {
+    width: 150px;
+  }
+  .compatibility-list {
+    grid-template-columns: 1fr 1fr;
+  }
+  .important-notice {
+    flex-direction: row;
+  }
+}
+
+/* 💻 Notebooks / Telas médias (telas de 992px até 1199px) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  /* Estilos para notebooks e monitores menores */
+  .product-page {
+    padding: 2.5rem 0 6rem 0;
+  }
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  .product-layout {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 3.5rem;
+    margin-bottom: 5rem;
+  }
+  .main-image {
+    padding: 2rem;
+  }
+  .product-title {
+    font-size: 2.1rem;
+  }
+  .price {
+    font-size: 2.35rem;
+  }
+  .compatibility-list {
+    grid-template-columns: 1fr 1fr;
+  }
+  .important-notice {
+    flex-direction: row;
+  }
+}
+
+/* 🖥️ Computadores / Monitores grandes (telas acima de 1200px) */
+@media (min-width: 1200px) {
+  /* Estilos para computadores de mesa */
+  .product-page {
+    padding: 3rem 0 7rem 0;
+  }
+  .container {
+    max-width: 1250px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  .product-layout {
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 4rem;
+    margin-bottom: 6rem;
+  }
+  .main-image {
+    padding: 2.5rem;
+  }
+  .product-title {
+    font-size: 2.5rem;
+  }
+  .price {
+    font-size: 2.75rem;
+  }
+  .compatibility-list {
+    grid-template-columns: 1fr 1fr;
+  }
+  .important-notice {
+    flex-direction: row;
+  }
 }
 </style>

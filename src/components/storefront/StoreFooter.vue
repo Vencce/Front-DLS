@@ -135,10 +135,66 @@ import { RouterLink } from 'vue-router'
     padding: 0 1.25rem;
   }
   .main-footer {
+    padding-top: 2.5rem;
+  }
+  .footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  .brand-section {
+    grid-column: span 2;
+  }
+  .brand-logo-footer {
+    font-size: 1.5rem;
+  }
+  .brand-section p {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+  }
+  .footer-section h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+  }
+  .footer-section ul {
+    gap: 0.6rem;
+  }
+  .footer-section ul a {
+    font-size: 0.85rem;
+  }
+  .contact-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .contact-info svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+  .contact-info p {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .footer-bottom {
+    margin-top: 2.5rem;
+    padding: 1rem 0;
+    font-size: 0.75rem;
+  }
+}
+
+/* 📱 Celulares grandes / modo paisagem (telas de 576px até 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  /* Estilos para smartphones maiores */
+  .container {
+    padding: 0 1.5rem;
+  }
+  .main-footer {
     padding-top: 3rem;
   }
   .footer-grid {
-    gap: 2.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  .brand-section {
+    grid-column: span 2;
   }
   .brand-logo-footer {
     font-size: 1.75rem;
@@ -146,6 +202,7 @@ import { RouterLink } from 'vue-router'
   .brand-section p {
     margin-top: 1rem;
     font-size: 0.9rem;
+    max-width: 100%;
   }
   .footer-section h4 {
     font-size: 1rem;
@@ -171,53 +228,6 @@ import { RouterLink } from 'vue-router'
     margin-top: 3rem;
     padding: 1.25rem 0;
     font-size: 0.8rem;
-  }
-}
-
-/* 📱 Celulares grandes / modo paisagem (telas de 576px até 767px) */
-@media (min-width: 576px) and (max-width: 767.98px) {
-  /* Estilos para smartphones maiores */
-  .container {
-    padding: 0 1.5rem;
-  }
-  .main-footer {
-    padding-top: 3.5rem;
-  }
-  .footer-grid {
-    gap: 3rem;
-  }
-  .brand-logo-footer {
-    font-size: 1.85rem;
-  }
-  .brand-section p {
-    margin-top: 1.25rem;
-    font-size: 0.95rem;
-    max-width: 400px;
-  }
-  .footer-section h4 {
-    font-size: 1.05rem;
-    margin-bottom: 1.25rem;
-  }
-  .footer-section ul {
-    gap: 0.85rem;
-  }
-  .footer-section ul a {
-    font-size: 0.95rem;
-  }
-  .contact-info {
-    gap: 0.85rem;
-  }
-  .contact-info svg {
-    width: 1.35rem;
-    height: 1.35rem;
-  }
-  .contact-info p {
-    font-size: 0.95rem;
-  }
-  .footer-bottom {
-    margin-top: 3.5rem;
-    padding: 1.25rem 0;
-    font-size: 0.85rem;
   }
 }
 

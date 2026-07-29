@@ -188,44 +188,26 @@ const handleRegisterSubmit = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4rem 1rem;
   background-color: var(--bg-color);
+  box-sizing: border-box;
 }
 
 .auth-card {
   width: 100%;
-  max-width: 900px;
   background-color: var(--surface-color);
-  border-radius: 1.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-}
-
-@media (min-width: 992px) {
-  .auth-card {
-    flex-direction: row;
-    min-height: 620px;
-  }
+  box-sizing: border-box;
 }
 
 .auth-banner {
   background: linear-gradient(135deg, #00361c 0%, #008f4c 100%);
   color: #ffffff;
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-}
-
-@media (min-width: 992px) {
-  .auth-banner {
-    width: 45%;
-    padding: 2.5rem;
-  }
 }
 
 .auth-banner::before {
@@ -251,21 +233,8 @@ const handleRegisterSubmit = async () => {
 .banner-logo {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
   text-decoration: none;
   color: #ffffff;
-  margin-bottom: 1.5rem;
-}
-
-@media (min-width: 992px) {
-  .banner-logo {
-    margin-bottom: auto;
-  }
-}
-
-.banner-logo svg {
-  width: 2rem;
-  height: 2rem;
 }
 
 .brand-text {
@@ -275,117 +244,75 @@ const handleRegisterSubmit = async () => {
 }
 
 .logo-dls {
-  font-size: 1.25rem;
   font-weight: 900;
   letter-spacing: 1px;
 }
 
 .logo-auto {
-  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 2px;
 }
 
-.banner-text {
-  margin: 1rem 0;
-}
-
-@media (min-width: 992px) {
-  .banner-text {
-    margin: 2rem 0;
-  }
-}
-
 .banner-text h2 {
-  font-size: 1.5rem;
   font-weight: 800;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   line-height: 1.2;
 }
 
-@media (min-width: 992px) {
-  .banner-text h2 {
-    font-size: 2rem;
-  }
-}
-
 .banner-text p {
-  font-size: 0.9rem;
-  line-height: 1.5;
   opacity: 0.9;
+  margin: 0;
 }
 
 .banner-footer {
-  margin-top: 1.5rem;
-  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   opacity: 0.7;
 }
 
-@media (min-width: 992px) {
-  .banner-footer {
-    margin-top: auto;
-  }
-}
-
 .auth-form-container {
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
   flex-grow: 1;
-}
-
-@media (min-width: 992px) {
-  .auth-form-container {
-    width: 55%;
-    padding: 2rem 2.5rem;
-  }
+  box-sizing: border-box;
 }
 
 .mode-toggle {
   display: flex;
   background-color: var(--bg-color);
   border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  padding: 0.25rem;
-  margin-bottom: 1.5rem;
+  border-radius: 1rem;
 }
 
 .mode-toggle button {
   flex: 1;
   border: none;
   background: none;
-  padding: 0.6rem;
-  border-radius: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
+  border-radius: 0.75rem;
 }
 
 .mode-toggle button.active {
   background-color: var(--primary-light);
   color: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 143, 76, 0.25);
+  box-shadow: 0 4px 15px rgba(0, 143, 76, 0.3);
 }
 
 .google-login-wrapper {
   display: flex;
   justify-content: center;
-  margin-bottom: 1rem;
 }
 
 .divider {
   display: flex;
   align-items: center;
   text-align: center;
-  margin-bottom: 1rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -396,98 +323,75 @@ const handleRegisterSubmit = async () => {
   border-bottom: 1px solid var(--border-color);
 }
 
-.divider span {
-  padding: 0 0.75rem;
-}
-
 .error-alert {
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #ef4444;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .error-alert svg {
-  width: 1.15rem;
-  height: 1.15rem;
   flex-shrink: 0;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
 }
 
 .input-group label {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-main);
 }
 
 .input-group input {
-  padding: 0.65rem 0.85rem;
   border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  font-size: 0.85rem;
   background-color: var(--bg-color);
   color: var(--text-main);
   transition: all 0.2s ease;
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input-group input:focus {
   border-color: var(--primary-light);
-  box-shadow: 0 0 0 3px rgba(0, 168, 89, 0.1);
+  box-shadow: 0 0 0 4px rgba(0, 168, 89, 0.15);
 }
 
 .btn-primary {
   background-color: var(--primary-light);
   color: #ffffff;
   border: none;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 900;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 0.25rem;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 42px;
+  width: 100%;
 }
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 5px 10px -3px rgba(0, 168, 89, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(0, 168, 89, 0.4);
 }
 
 .btn-primary:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #ffffff;
   animation: spin 1s ease-in-out infinite;
@@ -495,5 +399,540 @@ const handleRegisterSubmit = async () => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 575.98px) {
+  /* Estilos para smartphones pequenos e médios */
+  .auth-layout {
+    padding: 1.5rem 1rem 3rem 1rem;
+    min-height: calc(100vh - 80px);
+  }
+  .auth-card {
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+  }
+  .auth-banner {
+    padding: 1.5rem;
+    text-align: center;
+    align-items: center;
+  }
+  .banner-logo {
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    justify-content: center;
+  }
+  .banner-logo svg {
+    width: 2rem;
+    height: 2rem;
+  }
+  .logo-dls {
+    font-size: 1.2rem;
+  }
+  .logo-auto {
+    font-size: 0.7rem;
+  }
+  .banner-text {
+    margin: 0.5rem 0 1.25rem 0;
+  }
+  .banner-text h2 {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+  }
+  .banner-text p {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+  .banner-footer {
+    margin-top: 0;
+    font-size: 0.7rem;
+  }
+  .auth-form-container {
+    padding: 1.75rem 1.25rem;
+  }
+  .mode-toggle {
+    padding: 0.35rem;
+    margin-bottom: 1.75rem;
+  }
+  .mode-toggle button {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+  .google-login-wrapper {
+    margin-bottom: 1.5rem;
+  }
+  .divider {
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .divider span {
+    padding: 0 1rem;
+  }
+  .error-alert {
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+  }
+  .error-alert svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .auth-form {
+    gap: 1.25rem;
+  }
+  .input-group {
+    gap: 0.5rem;
+  }
+  .input-group label {
+    font-size: 0.9rem;
+  }
+  .input-group input {
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 1rem; /* Evita zoom no iOS */
+  }
+  .btn-primary {
+    padding: 1.1rem;
+    border-radius: 0.75rem;
+    font-size: 1.05rem;
+    margin-top: 0.5rem;
+    min-height: 54px;
+  }
+  .spinner {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* 📱 Celulares grandes / modo paisagem (telas de 576px até 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  /* Estilos para smartphones maiores */
+  .auth-layout {
+    padding: 2.5rem 1.5rem 4rem 1.5rem;
+  }
+  .auth-card {
+    max-width: 500px;
+    margin: 0 auto;
+    border-radius: 1.5rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+  }
+  .auth-banner {
+    padding: 2rem;
+    text-align: center;
+    align-items: center;
+  }
+  .banner-logo {
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+  }
+  .banner-logo svg {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  .logo-dls {
+    font-size: 1.35rem;
+  }
+  .logo-auto {
+    font-size: 0.8rem;
+  }
+  .banner-text {
+    margin: 0.5rem 0 1.5rem 0;
+  }
+  .banner-text h2 {
+    font-size: 1.6rem;
+    margin-bottom: 0.6rem;
+  }
+  .banner-text p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .banner-footer {
+    margin-top: 0;
+    font-size: 0.75rem;
+  }
+  .auth-form-container {
+    padding: 2rem 2.5rem;
+  }
+  .mode-toggle {
+    padding: 0.35rem;
+    margin-bottom: 2rem;
+  }
+  .mode-toggle button {
+    padding: 0.85rem;
+    font-size: 0.95rem;
+  }
+  .google-login-wrapper {
+    margin-bottom: 1.75rem;
+  }
+  .divider {
+    margin-bottom: 1.75rem;
+    font-size: 0.9rem;
+  }
+  .divider span {
+    padding: 0 1.25rem;
+  }
+  .error-alert {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.75rem;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+  }
+  .error-alert svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .auth-form {
+    gap: 1.5rem;
+  }
+  .input-group {
+    gap: 0.5rem;
+  }
+  .input-group label {
+    font-size: 0.95rem;
+  }
+  .input-group input {
+    padding: 1.1rem 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+  }
+  .btn-primary {
+    padding: 1.15rem;
+    border-radius: 0.75rem;
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+    min-height: 56px;
+  }
+  .spinner {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* 📟 Tablets / iPad (telas de 768px até 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  /* Estilos específicos para iPad e tablets parecidos */
+  .auth-layout {
+    padding: 4rem 2rem 5rem 2rem;
+  }
+  .auth-card {
+    max-width: 600px;
+    margin: 0 auto;
+    border-radius: 1.5rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--border-color);
+  }
+  .auth-banner {
+    padding: 2.5rem;
+    text-align: center;
+    align-items: center;
+  }
+  .banner-logo {
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+    justify-content: center;
+  }
+  .banner-logo svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .logo-dls {
+    font-size: 1.5rem;
+  }
+  .logo-auto {
+    font-size: 0.85rem;
+  }
+  .banner-text {
+    margin: 0.5rem 0 1.75rem 0;
+  }
+  .banner-text h2 {
+    font-size: 1.85rem;
+    margin-bottom: 0.75rem;
+  }
+  .banner-text p {
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+  .banner-footer {
+    margin-top: 0;
+    font-size: 0.8rem;
+  }
+  .auth-form-container {
+    padding: 2.5rem 3.5rem;
+  }
+  .mode-toggle {
+    padding: 0.4rem;
+    margin-bottom: 2.25rem;
+  }
+  .mode-toggle button {
+    padding: 0.9rem;
+    font-size: 1rem;
+  }
+  .google-login-wrapper {
+    margin-bottom: 2rem;
+  }
+  .divider {
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+  .divider span {
+    padding: 0 1.5rem;
+  }
+  .error-alert {
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+  }
+  .error-alert svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+  .auth-form {
+    gap: 1.5rem;
+  }
+  .input-group {
+    gap: 0.6rem;
+  }
+  .input-group label {
+    font-size: 1rem;
+  }
+  .input-group input {
+    padding: 1.15rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 1.05rem;
+  }
+  .btn-primary {
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 1.15rem;
+    margin-top: 1rem;
+    min-height: 60px;
+  }
+  .spinner {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+/* 💻 Notebooks / Telas médias (telas de 992px até 1199px) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  /* Estilos para notebooks e monitores menores */
+  .auth-layout {
+    padding: 5rem 2rem;
+  }
+  .auth-card {
+    max-width: 900px;
+    margin: 0 auto;
+    flex-direction: row;
+    min-height: 600px;
+    border-radius: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color);
+  }
+  .auth-banner {
+    width: 45%;
+    padding: 3rem 2.5rem;
+  }
+  .banner-logo {
+    gap: 0.75rem;
+    margin-bottom: auto;
+  }
+  .banner-logo svg {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  .logo-dls {
+    font-size: 1.4rem;
+  }
+  .logo-auto {
+    font-size: 0.85rem;
+  }
+  .banner-text {
+    margin: 2rem 0;
+  }
+  .banner-text h2 {
+    font-size: 1.85rem;
+    margin-bottom: 1rem;
+  }
+  .banner-text p {
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+  .banner-footer {
+    margin-top: auto;
+    font-size: 0.85rem;
+  }
+  .auth-form-container {
+    width: 55%;
+    padding: 3rem;
+  }
+  .mode-toggle {
+    padding: 0.4rem;
+    margin-bottom: 2rem;
+  }
+  .mode-toggle button {
+    padding: 0.9rem;
+    font-size: 1rem;
+  }
+  .google-login-wrapper {
+    margin-bottom: 2rem;
+  }
+  .divider {
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+  }
+  .divider span {
+    padding: 0 1.25rem;
+  }
+  .error-alert {
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+  }
+  .error-alert svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+  .auth-form {
+    gap: 1.5rem;
+  }
+  .input-group {
+    gap: 0.6rem;
+  }
+  .input-group label {
+    font-size: 0.95rem;
+  }
+  .input-group input {
+    padding: 1.15rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 1.05rem;
+  }
+  .btn-primary {
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 1.1rem;
+    margin-top: 1rem;
+    min-height: 56px;
+  }
+  .spinner {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* 🖥️ Computadores / Monitores grandes (telas acima de 1200px) */
+@media (min-width: 1200px) {
+  /* Estilos para computadores de mesa */
+  .auth-layout {
+    padding: 6rem 2rem;
+  }
+  .auth-card {
+    max-width: 1000px;
+    margin: 0 auto;
+    flex-direction: row;
+    min-height: 650px;
+    border-radius: 1.75rem;
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+  }
+  .auth-banner {
+    width: 45%;
+    padding: 4rem 3rem;
+  }
+  .banner-logo {
+    gap: 1rem;
+    margin-bottom: auto;
+  }
+  .banner-logo svg {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .logo-dls {
+    font-size: 1.75rem;
+  }
+  .logo-auto {
+    font-size: 0.95rem;
+  }
+  .banner-text {
+    margin: 3rem 0;
+  }
+  .banner-text h2 {
+    font-size: 2.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .banner-text p {
+    font-size: 1.15rem;
+    line-height: 1.7;
+  }
+  .banner-footer {
+    margin-top: auto;
+    font-size: 0.9rem;
+  }
+  .auth-form-container {
+    width: 55%;
+    padding: 4rem;
+  }
+  .mode-toggle {
+    padding: 0.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .mode-toggle button {
+    padding: 1rem;
+    font-size: 1.05rem;
+  }
+  .google-login-wrapper {
+    margin-bottom: 2.5rem;
+  }
+  .divider {
+    margin-bottom: 2.5rem;
+    font-size: 0.95rem;
+  }
+  .divider span {
+    padding: 0 1.5rem;
+  }
+  .error-alert {
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 2.5rem;
+    gap: 1rem;
+    font-size: 1rem;
+  }
+  .error-alert svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  .auth-form {
+    gap: 1.75rem;
+  }
+  .input-group {
+    gap: 0.75rem;
+  }
+  .input-group label {
+    font-size: 1rem;
+  }
+  .input-group input {
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 1.05rem;
+  }
+  .btn-primary {
+    padding: 1.35rem;
+    border-radius: 0.75rem;
+    font-size: 1.15rem;
+    margin-top: 1.25rem;
+    min-height: 60px;
+  }
+  .spinner {
+    width: 26px;
+    height: 26px;
+  }
 }
 </style>
