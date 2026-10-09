@@ -15,6 +15,22 @@
         <label>Telefone</label>
         <input type="text" v-model="form.customer_phone" required />
       </div>
+      <div class="form-group">
+        <label>CPF</label>
+        <input type="text" v-model="form.customer_cpf" required />
+      </div>
+      <div class="form-group">
+        <label>Código Postal</label>
+        <input type="text" v-model="form.zip_code" required />
+      </div>
+      <div class="form-group">
+        <label>Serviço de Entrega</label>
+        <select v-model="form.shipping_service" required>
+          <option value="PAC">PAC</option>
+          <option value="SEDEX">SEDEX</option>
+          <option value="TRANSPORTADORA">Transportadora</option>
+        </select>
+      </div>
       
       <button type="submit" class="btn-submit" :disabled="isLoading">
         <span v-if="isLoading">Processando...</span>
@@ -27,17 +43,31 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import api from '@/services/api'
+import { useCartStore } from '@/stores/cartStore'
+
+const cartStore = useCartStore()
 
 const form = reactive({
   customer_name: '',
   customer_email: '',
-  customer_phone: ''
+  customer_phone: '',
+  customer_cpf: '',
+  zip_code: '',
+  shipping_service: 'PAC',
+  items: []
 })
 
 const isLoading = ref(false)
 
 const createOrder = async () => {
   isLoading.value = true
+  
+  form.items = cartStore.items.map(item => ({
+    product: item.product.id || item.product,
+    quantity: item.quantity,
+    price: item.price || item.product.price
+  }))
+
   try {
     const response = await api.post('/orders/', form)
     if (response.data.invoice_url) {
@@ -45,10 +75,7 @@ const createOrder = async () => {
     }
   } catch (error) {
     if (error.response) {
-      console.error(error.response.data)
       alert(JSON.stringify(error.response.data))
-    } else {
-      console.error(error.message)
     }
   } finally {
     isLoading.value = false
@@ -90,14 +117,14 @@ const createOrder = async () => {
   color: #444;
 }
 
-.form-group input {
+.form-group input, .form-group select {
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
 }
 
-.form-group input:focus {
+.form-group input:focus, .form-group select:focus {
   outline: none;
   border-color: #009ee3;
 }
