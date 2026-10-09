@@ -62,9 +62,9 @@ const isLoading = ref(false)
 const createOrder = async () => {
   isLoading.value = true
   
-  // Utilização do optional chaining (?.) para evitar o erro de undefined
+  // Alteração da chave de 'product' para 'product_id'
   form.items = cartStore.items.map(item => ({
-    product: item.product?.id || item.id,
+    product_id: item.product?.id || item.id, 
     quantity: item.quantity || 1,
     price: item.price || item.product?.price
   }))
