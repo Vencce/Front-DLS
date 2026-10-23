@@ -5,7 +5,7 @@
     <div class="checkout-grid">
       <div class="checkout-form-panel">
         <h2>Dados do Cliente</h2>
-        <form @submit.prevent="submitOrder">
+        <form @submit.prevent="createOrder" class="checkout-form">
           <div class="form-group">
             <label>Nome Completo</label>
             <input type="text" v-model="form.customer_name" required />
@@ -31,6 +31,7 @@
             <select v-model="form.shipping_service" required>
               <option value="PAC">PAC</option>
               <option value="SEDEX">SEDEX</option>
+              <option value="TRANSPORTADORA">Transportadora</option>
             </select>
           </div>
         </form>
@@ -38,34 +39,23 @@
 
       <div class="checkout-summary-panel">
         <h2>Resumo do Pedido</h2>
+        
         <div class="summary-items">
-          <div class="summary-item" v-for="item in cart" :key="item.product_id">
-            <span>{{ item.name }} (x{{ item.quantity }})</span>
-            <span>R$ {{ (item.unit_price * item.quantity).toFixed(2) }}</span>
+          <div class="summary-item" v-for="(item, index) in cartStore.items" :key="index">
+            <span>{{ item.name || item.product?.name || 'Produto' }} (x{{ item.quantity || 1 }})</span>
+            <span>R$ {{ getPrice(item).toFixed(2) }}</span>
           </div>
         </div>
         
         <div class="summary-totals">
-          <div class="total-line">
-            <span>Subtotal</span>
-            <span>R$ {{ cartTotal.toFixed(2) }}</span>
-          </div>
-          <div class="total-line">
-            <span>Frete</span>
-            <span>R$ {{ shippingFee.toFixed(2) }}</span>
-          </div>
           <div class="total-line grand-total">
             <span>Total a Pagar</span>
-            <span>R$ {{ (cartTotal + shippingFee).toFixed(2) }}</span>
+            <span>R$ {{ cartTotal.toFixed(2) }}</span>
           </div>
         </div>
 
-        <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
-
-        <button class="checkout-btn" @click="submitOrder" :disabled="loading">
-          <span v-if="loading">Processando...</span>
+        <button class="checkout-btn" @click="createOrder" :disabled="isLoading">
+          <span v-if="isLoading">Processando...</span>
           <span v-else>Pagar com Asaas</span>
         </button>
       </div>
@@ -74,50 +64,55 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import api from '@/services/api'
 import { useCartStore } from '@/stores/cartStore'
-import axios from 'axios'
 
 const cartStore = useCartStore()
-const cart = computed(() => cartStore.items)
-const cartTotal = computed(() => cartStore.totalAmount)
-const shippingFee = ref(0.0)
 
-const form = ref({
+const form = reactive({
   customer_name: '',
   customer_email: '',
   customer_phone: '',
   customer_cpf: '',
   zip_code: '',
-  shipping_service: 'PAC'
+  shipping_service: 'PAC',
+  items: []
 })
 
-const loading = ref(false)
-const errorMessage = ref('')
+const isLoading = ref(false)
 
-const submitOrder = async () => {
-  loading.value = true
-  errorMessage.value = ''
+const getPrice = (item) => {
+  const price = item.price || item.product?.price || 0
+  return Number(price)
+}
+
+const cartTotal = computed(() => {
+  return cartStore.items.reduce((total, item) => {
+    return total + (getPrice(item) * (item.quantity || 1))
+  }, 0)
+})
+
+const createOrder = async () => {
+  isLoading.value = true
   
+  form.items = cartStore.items.map(item => ({
+    product_id: item.product?.id || item.id, 
+    quantity: item.quantity || 1,
+    price: item.price || item.product?.price
+  }))
+
   try {
-    const payload = {
-      ...form.value,
-      shipping_fee: shippingFee.value,
-      items: cart.value.map(item => ({
-        product_id: item.product_id,
-        quantity: item.quantity
-      }))
-    }
-    
-    const response = await axios.post('https://dls-auto-pecas-api.onrender.com/api/v1/orders/', payload)
-    
+    const response = await api.post('/orders/', form)
     if (response.data.invoice_url) {
       window.location.href = response.data.invoice_url
     }
   } catch (error) {
-    errorMessage.value = "Erro ao processar o pagamento. Verifique os dados e tente novamente."
+    if (error.response) {
+      alert(JSON.stringify(error.response.data))
+    }
   } finally {
-    loading.value = false
+    isLoading.value = false
   }
 }
 </script>
@@ -194,9 +189,9 @@ h2 {
 
 .form-group input:focus,
 .form-group select:focus {
-  border-color: #3b82f6;
+  border-color: #009ee3;
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 158, 227, 0.15);
   outline: none;
 }
 
@@ -236,19 +231,9 @@ h2 {
   padding-top: 15px;
 }
 
-.error-message {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 0.9rem;
-  text-align: center;
-}
-
 .checkout-btn {
   width: 100%;
-  background: #10b981;
+  background: #009ee3;
   color: #ffffff;
   border: none;
   padding: 16px;
@@ -260,7 +245,7 @@ h2 {
 }
 
 .checkout-btn:hover:not(:disabled) {
-  background: #059669;
+  background: #0087c1;
 }
 
 .checkout-btn:active:not(:disabled) {
@@ -268,7 +253,7 @@ h2 {
 }
 
 .checkout-btn:disabled {
-  background: #9ca3af;
+  background: #cccccc;
   cursor: not-allowed;
 }
 </style>
