@@ -173,10 +173,18 @@ onMounted(async () => {
                   <span>Valor Total</span>
                   <strong>{{ formatPrice(getOrderTotal(order)) }}</strong>
                 </div>
-                <div class="order-status">
+                
+                <div class="order-status" style="align-items: center;">
                   <span class="badge" :class="getStatusClass(order.status)">
                     {{ getStatusName(order.status) }}
                   </span>
+                  <!-- Botão NOVO para pagamentos pendentes -->
+                  <a v-if="order.status === 'PENDING' && order.invoice_url" 
+                     :href="order.invoice_url" 
+                     target="_blank"
+                     class="btn-pay-now">
+                    Pagar Agora
+                  </a>
                 </div>
               </div>
               
@@ -437,6 +445,25 @@ onMounted(async () => {
   text-align: center;
 }
 
+/* --- NOVO ESTILO DO BOTÃO DE PAGAMENTO --- */
+.btn-pay-now {
+  background-color: #10b981;
+  color: #ffffff;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background-color 0.2s;
+  margin-top: 0.5rem;
+}
+
+.btn-pay-now:hover {
+  background-color: #059669;
+}
+
 .status-pending { background-color: #fef9c3; color: #a16207; }
 .status-paid { background-color: #dbeafe; color: #1d4ed8; }
 .status-shipped { background-color: #e0e7ff; color: #4338ca; }
@@ -513,512 +540,138 @@ onMounted(async () => {
 }
 
 @media (max-width: 575.98px) {
-  /* Estilos para smartphones pequenos e médios */
-  .customer-area-page {
-    padding-bottom: 3rem;
-  }
-  .page-header {
-    padding: 1.5rem 0;
-    margin-bottom: 1.5rem;
-  }
-  .page-header h1 {
-    font-size: 1.5rem;
-  }
-  .page-header p {
-    font-size: 0.9rem;
-  }
-  .layout-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  .sidebar {
-    gap: 1rem;
-  }
-  .user-profile-card {
-    padding: 1.25rem;
-    flex-direction: column;
-    text-align: center;
-    gap: 0.75rem;
-  }
-  .avatar {
-    width: 4rem;
-    height: 4rem;
-    font-size: 1.75rem;
-  }
-  .user-info h3 {
-    font-size: 1.1rem;
-  }
-  .user-info p {
-    font-size: 0.85rem;
-  }
-  .sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 0.5rem;
-    border-radius: 0.75rem;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .sidebar-nav::-webkit-scrollbar {
-    display: none;
-  }
-  .sidebar-nav button {
-    width: auto;
-    flex-shrink: 0;
-    padding: 0.75rem 1rem;
-    font-size: 0.9rem;
-    border-radius: 0.5rem;
-  }
-  .sidebar-nav button svg {
-    width: 1.15rem;
-    height: 1.15rem;
-  }
-  .sidebar-nav .btn-logout {
-    margin-top: 0;
-    border-top: none;
-    border-radius: 0.5rem;
-  }
-  .content-area h2 {
-    font-size: 1.25rem;
-  }
-  .loading-state, .empty-state {
-    padding: 3rem 1.25rem;
-  }
-  .spinner {
-    width: 32px;
-    height: 32px;
-  }
-  .empty-state svg {
-    width: 3rem;
-    height: 3rem;
-  }
-  .empty-state h3 {
-    font-size: 1.1rem;
-  }
-  .empty-state p {
-    font-size: 0.9rem;
-  }
-  .btn-primary {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.95rem;
-  }
-  .order-header {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    padding: 1.25rem;
-  }
-  .order-header span {
-    font-size: 0.75rem;
-  }
-  .order-header strong {
-    font-size: 0.95rem;
-  }
-  .badge {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
-  }
-  .order-items {
-    padding: 1.25rem;
-    gap: 0.75rem;
-  }
-  .item-row {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding-bottom: 0.75rem;
-  }
-  .item-name {
-    width: 100%;
-    font-size: 0.95rem;
-  }
-  .item-qty {
-    font-size: 0.9rem;
-  }
-  .item-price {
-    margin-left: auto;
-    font-size: 0.95rem;
-  }
-  .profile-card {
-    padding: 1.25rem;
-    gap: 1.25rem;
-  }
-  .form-group label {
-    font-size: 0.85rem;
-  }
-  .form-group input {
-    padding: 0.85rem 1rem;
-    font-size: 1rem; /* Previne zoom no iOS */
-  }
-  .help-text {
-    padding-top: 1.25rem;
-    font-size: 0.8rem;
-  }
+  .customer-area-page { padding-bottom: 3rem; }
+  .page-header { padding: 1.5rem 0; margin-bottom: 1.5rem; }
+  .page-header h1 { font-size: 1.5rem; }
+  .page-header p { font-size: 0.9rem; }
+  .layout-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .sidebar { gap: 1rem; }
+  .user-profile-card { padding: 1.25rem; flex-direction: column; text-align: center; gap: 0.75rem; }
+  .avatar { width: 4rem; height: 4rem; font-size: 1.75rem; }
+  .user-info h3 { font-size: 1.1rem; }
+  .user-info p { font-size: 0.85rem; }
+  .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 0.5rem; border-radius: 0.75rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
+  .sidebar-nav button { width: auto; flex-shrink: 0; padding: 0.75rem 1rem; font-size: 0.9rem; border-radius: 0.5rem; }
+  .sidebar-nav button svg { width: 1.15rem; height: 1.15rem; }
+  .sidebar-nav .btn-logout { margin-top: 0; border-top: none; border-radius: 0.5rem; }
+  .content-area h2 { font-size: 1.25rem; }
+  .loading-state, .empty-state { padding: 3rem 1.25rem; }
+  .spinner { width: 32px; height: 32px; }
+  .empty-state svg { width: 3rem; height: 3rem; }
+  .empty-state h3 { font-size: 1.1rem; }
+  .empty-state p { font-size: 0.9rem; }
+  .btn-primary { padding: 0.75rem 1.25rem; font-size: 0.95rem; }
+  .order-header { grid-template-columns: 1fr; gap: 1rem; padding: 1.25rem; }
+  .order-header span { font-size: 0.75rem; }
+  .order-header strong { font-size: 0.95rem; }
+  .badge { padding: 0.3rem 0.6rem; font-size: 0.75rem; margin-top: 0.25rem; }
+  .order-items { padding: 1.25rem; gap: 0.75rem; }
+  .item-row { flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.75rem; }
+  .item-name { width: 100%; font-size: 0.95rem; }
+  .item-qty { font-size: 0.9rem; }
+  .item-price { margin-left: auto; font-size: 0.95rem; }
+  .profile-card { padding: 1.25rem; gap: 1.25rem; }
+  .form-group label { font-size: 0.85rem; }
+  .form-group input { padding: 0.85rem 1rem; font-size: 1rem; }
+  .help-text { padding-top: 1.25rem; font-size: 0.8rem; }
 }
 
-/* 📱 Celulares grandes / modo paisagem (telas de 576px até 767px) */
 @media (min-width: 576px) and (max-width: 767.98px) {
-  /* Estilos para smartphones maiores */
-  .customer-area-page {
-    padding-bottom: 4rem;
-  }
-  .page-header {
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-  }
-  .page-header h1 {
-    font-size: 1.85rem;
-  }
-  .page-header p {
-    font-size: 1rem;
-  }
-  .layout-grid {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  .sidebar {
-    gap: 1.25rem;
-  }
-  .user-profile-card {
-    padding: 1.5rem;
-    gap: 1.25rem;
-  }
-  .avatar {
-    width: 4.5rem;
-    height: 4.5rem;
-    font-size: 2rem;
-  }
-  .user-info h3 {
-    font-size: 1.25rem;
-  }
-  .user-info p {
-    font-size: 0.95rem;
-  }
-  .sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .sidebar-nav::-webkit-scrollbar {
-    display: none;
-  }
-  .sidebar-nav button {
-    width: auto;
-    flex-shrink: 0;
-    padding: 0.75rem 1.25rem;
-    font-size: 0.95rem;
-    border-radius: 0.5rem;
-  }
-  .sidebar-nav button svg {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-  .sidebar-nav .btn-logout {
-    margin-top: 0;
-    border-top: none;
-    border-radius: 0.5rem;
-  }
-  .content-area h2 {
-    font-size: 1.4rem;
-  }
-  .loading-state, .empty-state {
-    padding: 4rem 2rem;
-  }
-  .spinner {
-    width: 36px;
-    height: 36px;
-  }
-  .empty-state svg {
-    width: 3.5rem;
-    height: 3.5rem;
-  }
-  .empty-state h3 {
-    font-size: 1.2rem;
-  }
-  .empty-state p {
-    font-size: 0.95rem;
-  }
-  .order-header {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-    padding: 1.5rem;
-  }
-  .order-header span {
-    font-size: 0.8rem;
-  }
-  .order-header strong {
-    font-size: 1rem;
-  }
-  .badge {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8rem;
-  }
-  .order-items {
-    padding: 1.5rem;
-    gap: 1rem;
-  }
-  .item-row {
-    flex-wrap: nowrap;
-    gap: 1rem;
-    padding-bottom: 1rem;
-  }
-  .item-name {
-    font-size: 1rem;
-  }
-  .item-qty {
-    font-size: 0.95rem;
-  }
-  .item-price {
-    font-size: 1rem;
-  }
-  .profile-card {
-    padding: 1.5rem;
-    gap: 1.5rem;
-  }
-  .form-group label {
-    font-size: 0.9rem;
-  }
-  .form-group input {
-    padding: 0.9rem 1.1rem;
-    font-size: 1rem;
-  }
-  .help-text {
-    padding-top: 1.5rem;
-    font-size: 0.85rem;
-  }
+  .customer-area-page { padding-bottom: 4rem; }
+  .page-header { padding: 2rem 0; margin-bottom: 2rem; }
+  .page-header h1 { font-size: 1.85rem; }
+  .page-header p { font-size: 1rem; }
+  .layout-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .sidebar { gap: 1.25rem; }
+  .user-profile-card { padding: 1.5rem; gap: 1.25rem; }
+  .avatar { width: 4.5rem; height: 4.5rem; font-size: 2rem; }
+  .user-info h3 { font-size: 1.25rem; }
+  .user-info p { font-size: 0.95rem; }
+  .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 0.75rem; border-radius: 0.75rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
+  .sidebar-nav button { width: auto; flex-shrink: 0; padding: 0.75rem 1.25rem; font-size: 0.95rem; border-radius: 0.5rem; }
+  .sidebar-nav button svg { width: 1.25rem; height: 1.25rem; }
+  .sidebar-nav .btn-logout { margin-top: 0; border-top: none; border-radius: 0.5rem; }
+  .content-area h2 { font-size: 1.4rem; }
+  .loading-state, .empty-state { padding: 4rem 2rem; }
+  .spinner { width: 36px; height: 36px; }
+  .empty-state svg { width: 3.5rem; height: 3.5rem; }
+  .empty-state h3 { font-size: 1.2rem; }
+  .empty-state p { font-size: 0.95rem; }
+  .order-header { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; padding: 1.5rem; }
+  .order-header span { font-size: 0.8rem; }
+  .order-header strong { font-size: 1rem; }
+  .badge { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+  .order-items { padding: 1.5rem; gap: 1rem; }
+  .item-row { flex-wrap: nowrap; gap: 1rem; padding-bottom: 1rem; }
+  .item-name { font-size: 1rem; }
+  .item-qty { font-size: 0.95rem; }
+  .item-price { font-size: 1rem; }
+  .profile-card { padding: 1.5rem; gap: 1.5rem; }
+  .form-group label { font-size: 0.9rem; }
+  .form-group input { padding: 0.9rem 1.1rem; font-size: 1rem; }
+  .help-text { padding-top: 1.5rem; font-size: 0.85rem; }
 }
 
-/* 📟 Tablets / iPad (telas de 768px até 991px) */
 @media (min-width: 768px) and (max-width: 991.98px) {
-  /* Estilos específicos para iPad e tablets parecidos */
-  .customer-area-page {
-    padding-bottom: 5rem;
-  }
-  .page-header {
-    padding: 2.5rem 0;
-    margin-bottom: 2.5rem;
-  }
-  .page-header h1 {
-    font-size: 2.25rem;
-  }
-  .page-header p {
-    font-size: 1.05rem;
-  }
-  .layout-grid {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-  .sidebar {
-    gap: 1.5rem;
-  }
-  .user-profile-card {
-    padding: 1.75rem;
-    gap: 1.5rem;
-  }
-  .avatar {
-    width: 5rem;
-    height: 5rem;
-    font-size: 2.25rem;
-  }
-  .user-info h3 {
-    font-size: 1.35rem;
-  }
-  .user-info p {
-    font-size: 1rem;
-  }
-  .sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 1rem;
-    border-radius: 1rem;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .sidebar-nav::-webkit-scrollbar {
-    display: none;
-  }
-  .sidebar-nav button {
-    width: auto;
-    flex-shrink: 0;
-    padding: 0.85rem 1.5rem;
-    font-size: 1rem;
-    border-radius: 0.5rem;
-  }
-  .sidebar-nav button svg {
-    width: 1.35rem;
-    height: 1.35rem;
-  }
-  .sidebar-nav .btn-logout {
-    margin-top: 0;
-    border-top: none;
-    border-radius: 0.5rem;
-  }
-  .content-area h2 {
-    font-size: 1.65rem;
-  }
-  .loading-state, .empty-state {
-    padding: 5rem 3rem;
-  }
-  .order-header {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    padding: 1.75rem;
-  }
-  .order-items {
-    padding: 1.75rem;
-    gap: 1.25rem;
-  }
-  .item-row {
-    flex-wrap: nowrap;
-    gap: 1.25rem;
-    padding-bottom: 1.25rem;
-  }
-  .profile-card {
-    padding: 2rem;
-    gap: 1.75rem;
-  }
-  .form-group label {
-    font-size: 0.95rem;
-  }
-  .form-group input {
-    padding: 1rem 1.25rem;
-    font-size: 1.05rem;
-  }
-  .help-text {
-    padding-top: 1.75rem;
-    font-size: 0.9rem;
-  }
+  .customer-area-page { padding-bottom: 5rem; }
+  .page-header { padding: 2.5rem 0; margin-bottom: 2.5rem; }
+  .page-header h1 { font-size: 2.25rem; }
+  .page-header p { font-size: 1.05rem; }
+  .layout-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+  .sidebar { gap: 1.5rem; }
+  .user-profile-card { padding: 1.75rem; gap: 1.5rem; }
+  .avatar { width: 5rem; height: 5rem; font-size: 2.25rem; }
+  .user-info h3 { font-size: 1.35rem; }
+  .user-info p { font-size: 1rem; }
+  .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 1rem; border-radius: 1rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
+  .sidebar-nav button { width: auto; flex-shrink: 0; padding: 0.85rem 1.5rem; font-size: 1rem; border-radius: 0.5rem; }
+  .sidebar-nav button svg { width: 1.35rem; height: 1.35rem; }
+  .sidebar-nav .btn-logout { margin-top: 0; border-top: none; border-radius: 0.5rem; }
+  .content-area h2 { font-size: 1.65rem; }
+  .loading-state, .empty-state { padding: 5rem 3rem; }
+  .order-header { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; padding: 1.75rem; }
+  .order-items { padding: 1.75rem; gap: 1.25rem; }
+  .item-row { flex-wrap: nowrap; gap: 1.25rem; padding-bottom: 1.25rem; }
+  .profile-card { padding: 2rem; gap: 1.75rem; }
+  .form-group label { font-size: 0.95rem; }
+  .form-group input { padding: 1rem 1.25rem; font-size: 1.05rem; }
+  .help-text { padding-top: 1.75rem; font-size: 0.9rem; }
 }
 
-/* 💻 Notebooks / Telas médias (telas de 992px até 1199px) */
 @media (min-width: 992px) and (max-width: 1199.98px) {
-  /* Estilos para notebooks e monitores menores */
-  .customer-area-page {
-    padding-bottom: 5rem;
-  }
-  .page-header {
-    padding: 3rem 0;
-    margin-bottom: 3rem;
-  }
-  .page-header h1 {
-    font-size: 2.5rem;
-  }
-  .page-header p {
-    font-size: 1.1rem;
-  }
-  .layout-grid {
-    grid-template-columns: 280px 1fr;
-    gap: 2.5rem;
-  }
-  .sidebar {
-    gap: 1.5rem;
-  }
-  .user-profile-card {
-    padding: 1.5rem;
-    flex-direction: column;
-    text-align: center;
-    gap: 1rem;
-  }
-  .avatar {
-    width: 4.5rem;
-    height: 4.5rem;
-    font-size: 2rem;
-  }
-  .sidebar-nav {
-    flex-direction: column;
-    padding: 1rem;
-    border-radius: 1rem;
-  }
-  .sidebar-nav button {
-    padding: 1rem;
-    font-size: 0.95rem;
-    border-radius: 0.5rem;
-    width: 100%;
-  }
-  .sidebar-nav .btn-logout {
-    margin-top: 1rem;
-    border-top: 1px solid var(--border-color);
-    border-radius: 0;
-  }
-  .order-header {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.25rem;
-    padding: 1.5rem;
-  }
-  .order-items {
-    padding: 1.5rem;
-    gap: 1rem;
-  }
-  .profile-card {
-    padding: 2rem;
-    gap: 1.5rem;
-  }
+  .customer-area-page { padding-bottom: 5rem; }
+  .page-header { padding: 3rem 0; margin-bottom: 3rem; }
+  .page-header h1 { font-size: 2.5rem; }
+  .page-header p { font-size: 1.1rem; }
+  .layout-grid { grid-template-columns: 280px 1fr; gap: 2.5rem; }
+  .sidebar { gap: 1.5rem; }
+  .user-profile-card { padding: 1.5rem; flex-direction: column; text-align: center; gap: 1rem; }
+  .avatar { width: 4.5rem; height: 4.5rem; font-size: 2rem; }
+  .sidebar-nav { flex-direction: column; padding: 1rem; border-radius: 1rem; }
+  .sidebar-nav button { padding: 1rem; font-size: 0.95rem; border-radius: 0.5rem; width: 100%; }
+  .sidebar-nav .btn-logout { margin-top: 1rem; border-top: 1px solid var(--border-color); border-radius: 0; }
+  .order-header { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; padding: 1.5rem; }
+  .order-items { padding: 1.5rem; gap: 1rem; }
+  .profile-card { padding: 2rem; gap: 1.5rem; }
 }
 
-/* 🖥️ Computadores / Monitores grandes (telas acima de 1200px) */
 @media (min-width: 1200px) {
-  /* Estilos para computadores de mesa */
-  .customer-area-page {
-    padding-bottom: 6rem;
-  }
-  .page-header {
-    padding: 3.5rem 0;
-    margin-bottom: 3.5rem;
-  }
-  .page-header h1 {
-    font-size: 2.75rem;
-  }
-  .page-header p {
-    font-size: 1.15rem;
-  }
-  .layout-grid {
-    grid-template-columns: 320px 1fr;
-    gap: 3rem;
-  }
-  .sidebar {
-    gap: 2rem;
-  }
-  .user-profile-card {
-    padding: 2rem;
-    flex-direction: column;
-    text-align: center;
-    gap: 1.25rem;
-  }
-  .avatar {
-    width: 5rem;
-    height: 5rem;
-    font-size: 2.25rem;
-  }
-  .sidebar-nav {
-    flex-direction: column;
-    padding: 1.25rem;
-    border-radius: 1.25rem;
-  }
-  .sidebar-nav button {
-    padding: 1.15rem;
-    font-size: 1.05rem;
-    border-radius: 0.6rem;
-    width: 100%;
-  }
-  .sidebar-nav .btn-logout {
-    margin-top: 1.25rem;
-    border-top: 1px solid var(--border-color);
-    border-radius: 0;
-  }
-  .order-header {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    padding: 1.75rem;
-  }
-  .order-items {
-    padding: 1.75rem;
-    gap: 1.25rem;
-  }
-  .profile-card {
-    padding: 2.5rem;
-    gap: 1.75rem;
-  }
+  .customer-area-page { padding-bottom: 6rem; }
+  .page-header { padding: 3.5rem 0; margin-bottom: 3.5rem; }
+  .page-header h1 { font-size: 2.75rem; }
+  .page-header p { font-size: 1.15rem; }
+  .layout-grid { grid-template-columns: 320px 1fr; gap: 3rem; }
+  .sidebar { gap: 2rem; }
+  .user-profile-card { padding: 2rem; flex-direction: column; text-align: center; gap: 1.25rem; }
+  .avatar { width: 5rem; height: 5rem; font-size: 2.25rem; }
+  .sidebar-nav { flex-direction: column; padding: 1.25rem; border-radius: 1.25rem; }
+  .sidebar-nav button { padding: 1.15rem; font-size: 1.05rem; border-radius: 0.6rem; width: 100%; }
+  .sidebar-nav .btn-logout { margin-top: 1.25rem; border-top: 1px solid var(--border-color); border-radius: 0; }
+  .order-header { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; padding: 1.75rem; }
+  .order-items { padding: 1.75rem; gap: 1.25rem; }
+  .profile-card { padding: 2.5rem; gap: 1.75rem; }
 }
 </style>
