@@ -372,7 +372,16 @@ const deleteProduct = async (id) => {
     await api.delete(`/products/${id}/`)
     await fetchData()
   } catch (error) {
-    alert('Erro ao excluir produto.')
+    const resp = error.response
+    console.error('Falha ao excluir:', resp?.status, resp?.data)
+    if (resp?.status === 409) {
+      alert(resp.data.detail)
+    } else if (resp?.status === 500) {
+      alert('O servidor recusou a exclusão. Provavelmente o produto já foi vendido. '
+            + 'Defina o estoque como 0 para tirá-lo da loja.')
+    } else {
+      alert(`Erro ao excluir produto (${resp?.status || 'sem resposta'}).`)
+    }
   }
 }
 
