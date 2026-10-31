@@ -114,9 +114,44 @@ const filteredProducts = computed(() => {
   return result
 })
 
-const openModal = (product = null) => {
+const existingImages = ref([])
+
+const openModal = async (product = null) => {
   selectedFiles.value = []
   imagePreviews.value = []
+  existingImages.value = []
+
+  if (product) {
+    isEditing.value = true
+    showModal.value = true
+
+    let full = product
+    try {
+      const { data } = await api.get(`/products/${product.id}/`)
+      full = data
+    } catch (error) {
+      console.error('Falha ao carregar detalhes do produto:', error)
+    }
+
+    existingImages.value = full.images || []
+
+    formData.value = {
+      id: full.id,
+      name: full.name || '',
+      sku: full.sku || '',
+      oem_code: full.oem_code || '',
+      price: full.price ?? '',
+      stock: full.stock ?? 0,
+      description: full.description || '',
+      category: full.category ? String(full.category) : '',
+      brand: full.brand ? String(full.brand) : '',
+      weight_kg: full.weight_kg ?? '',
+      length_cm: full.length_cm ?? '',
+      width_cm: full.width_cm ?? '',
+      height_cm: full.height_cm ?? ''
+    }
+    return
+  }
   
   if (product) {
     isEditing.value = true
@@ -244,6 +279,16 @@ const handleFileUpload = (event) => {
   })
   event.target.value = ''
 }
+const removeExistingImage = async (img) => {
+  if (!confirm('Excluir esta imagem permanentemente?')) return
+  try {
+    await api.delete(`/images/${img.id}/`)
+    existingImages.value = existingImages.value.filter(i => i.id !== img.id)
+  } catch (error) {
+    alert('Não foi possível excluir a imagem.')
+  }
+}
+
 
 const removeImage = (idx) => {
   selectedFiles.value.splice(idx, 1)
@@ -555,6 +600,18 @@ onMounted(() => {
 
             <div class="form-group full-width">
               <label>Imagens do Produto</label>
+              <div class="image-previews" v-if="existingImages.length" style="margin-bottom: 1rem;">
+                <div class="preview-item" v-for="img in existingImages" :key="img.id">
+                  <img
+                    :src="img.image.startsWith('http') ? img.image : `https://dls-auto-pecas-api.onrender.com${img.image}`"
+                    alt="Imagem cadastrada">
+                  <button type="button" class="remove-img" @click="removeExistingImage(img)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
               <div class="file-upload-box">
                 <input type="file" multiple accept="image/*" @change="handleFileUpload" class="file-input">
                 <div class="upload-placeholder" v-if="imagePreviews.length === 0">
