@@ -15,7 +15,7 @@ export const useProductStore = defineStore('product', {
       this.loading = true
       this.error = null
       try {
-        const response = await api.get('/products/', { params })
+        const response = await api.get('/products/', { params: { page_size: 200, ...params } })
         this.products = response.data.results || response.data
         this.totalItems = response.data.count !== undefined ? response.data.count : this.products.length
       } catch (err) {
@@ -26,7 +26,7 @@ export const useProductStore = defineStore('product', {
     },
     async fetchCategories() {
       try {
-        const response = await api.get('/categories/')
+        const response = await api.get('/categories/', { params: { page_size: 200 } })
         this.categories = response.data.results || response.data
       } catch (err) {
         this.error = 'Erro ao carregar categorias.'
@@ -34,7 +34,7 @@ export const useProductStore = defineStore('product', {
     },
     async fetchBrands() {
       try {
-        const response = await api.get('/brands/')
+        const response = await api.get('/brands/', { params: { page_size: 200 } })
         this.brands = response.data.results || response.data
       } catch (err) {
         this.error = 'Erro ao carregar marcas.'

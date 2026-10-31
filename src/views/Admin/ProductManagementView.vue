@@ -60,13 +60,17 @@ const getProductImage = (product) => {
   return null
 }
 
+const clearFilters = () => {
+  filters.value = { search: '', category: '', brand: '', stock: '' }
+}
+
 const fetchData = async () => {
   isLoading.value = true
   try {
     const [prodRes, catRes, brandRes] = await Promise.all([
-      api.get('/products/'),
-      api.get('/categories/'),
-      api.get('/brands/')
+      api.get('/products/', { params: { page_size: 200 } }),
+      api.get('/categories/', { params: { page_size: 200 } }),
+      api.get('/brands/', { params: { page_size: 200 } })
     ])
     products.value = prodRes.data.results || prodRes.data
     categories.value = catRes.data.results || catRes.data
@@ -254,8 +258,8 @@ const saveProduct = async () => {
   try {
     const data = new FormData()
     
-    data.append('name', formData.value.name)
-    data.append('sku', formData.value.sku)
+    data.append('name', formData.value.name.trim())
+    data.append('sku', formData.value.sku.trim())
     data.append('price', formData.value.price)
     data.append('stock', formData.value.stock)
 
@@ -301,7 +305,13 @@ const saveProduct = async () => {
     if (error.response && error.response.data) {
       const errData = error.response.data
       const firstKey = Object.keys(errData)[0]
-      errorMsg = `Erro no campo "${firstKey}": ${errData[firstKey]}`
+      const detalhe = Array.isArray(errData[firstKey]) ? errData[firstKey][0] : errData[firstKey]
+      const rotulos = {
+        sku: 'SKU', name: 'Nome', price: 'Preço', stock: 'Estoque',
+        brand: 'Marca', category: 'Categoria', weight_kg: 'Peso',
+        length_cm: 'Comprimento', width_cm: 'Largura', height_cm: 'Altura',
+      }
+      errorMsg = `${rotulos[firstKey] || firstKey}: ${detalhe}`
     }
     alert(errorMsg)
   } finally {
