@@ -236,14 +236,9 @@ const createOrder = async () => {
   transition: background-color 0.2s;
 }
 
-.btn-submit:hover:not(:disabled) {
-  background-color: #0087c1;
-}
+.btn-submit:hover:not(:disabled) { background-color: #0087c1; }
+.btn-submit:disabled { background-color: #cccccc; cursor: not-allowed; }
 
-.btn-submit:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
 .cep-row { display: flex; gap: 8px; }
 .cep-row input { flex: 1; }
 .btn-calc { padding: 0 16px; background: #009ee3; color: #fff; border: none;
