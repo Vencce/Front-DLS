@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import api from '../../services/api'
 import { useProductStore } from '../../stores/productStore'
 
+const API_BASE = 'https://dls-auto-pecas-api.onrender.com'
+
 const productStore = useProductStore()
 
 const products = ref([])
@@ -21,31 +23,23 @@ const showBrandDialog = ref(false)
 const newBrandName = ref('')
 const isSavingNewBrand = ref(false)
 
-const filters = ref({
-  search: '',
-  category: '',
-  brand: '',
-  stock: ''
+const filters = ref({ search: '', category: '', brand: '', stock: '' })
+
+const emptyForm = () => ({
+  id: null, name: '', sku: '', oem_code: '', price: '', stock: 0,
+  description: '', category: '', brand: '',
+  weight_kg: '', length_cm: '', width_cm: '', height_cm: ''
 })
 
-const formData = ref({
-  id: null,
-  name: '',
-  sku: '',
-  oem_code: '',
-  price: '',
-  stock: 0,
-  description: '',
-  category: '',
-  brand: '',
-  weight_kg: '',
-  length_cm: '',
-  width_cm: '',
-  height_cm: ''
-})
-
+const formData = ref(emptyForm())
 const selectedFiles = ref([])
 const imagePreviews = ref([])
+const existingImages = ref([])
+
+const resolveImage = (path) => {
+  if (!path) return ''
+  return path.startsWith('http') ? path : `${API_BASE}${path}`
+}
 
 const formatPrice = (value) => {
   if (!value) return 'R$ 0,00'
@@ -55,7 +49,7 @@ const formatPrice = (value) => {
 const getProductImage = (product) => {
   if (product.images && product.images.length > 0) {
     const img = product.images.find(i => i.is_main) || product.images[0]
-    return img.image.startsWith('http') ? img.image : `https://dls-auto-pecas-api.onrender.com${img.image}`
+    return resolveImage(img.image)
   }
   return null
 }
@@ -114,81 +108,47 @@ const filteredProducts = computed(() => {
   return result
 })
 
-const existingImages = ref([])
-
 const openModal = async (product = null) => {
   selectedFiles.value = []
   imagePreviews.value = []
   existingImages.value = []
 
-  if (product) {
-    isEditing.value = true
+  if (!product) {
+    isEditing.value = false
+    formData.value = emptyForm()
     showModal.value = true
-
-    let full = product
-    try {
-      const { data } = await api.get(`/products/${product.id}/`)
-      full = data
-    } catch (error) {
-      console.error('Falha ao carregar detalhes do produto:', error)
-    }
-
-    existingImages.value = full.images || []
-
-    formData.value = {
-      id: full.id,
-      name: full.name || '',
-      sku: full.sku || '',
-      oem_code: full.oem_code || '',
-      price: full.price ?? '',
-      stock: full.stock ?? 0,
-      description: full.description || '',
-      category: full.category ? String(full.category) : '',
-      brand: full.brand ? String(full.brand) : '',
-      weight_kg: full.weight_kg ?? '',
-      length_cm: full.length_cm ?? '',
-      width_cm: full.width_cm ?? '',
-      height_cm: full.height_cm ?? ''
-    }
     return
   }
-  
-  if (product) {
-    isEditing.value = true
-    formData.value = {
-      id: product.id,
-      name: product.name,
-      sku: product.sku,
-      oem_code: product.oem_code || '',
-      price: product.price,
-      stock: product.stock || 0,
-      description: product.description || '',
-      category: product.category ? String(product.category) : '',
-      brand: product.brand ? String(product.brand) : '',
-      weight_kg: product.weight_kg || '',
-      length_cm: product.length_cm || '',
-      width_cm: product.width_cm || '',
-      height_cm: product.height_cm || ''
-    }
-  } else {
-    isEditing.value = false
-    formData.value = {
-      id: null,
-      name: '',
-      sku: '',
-      oem_code: '',
-      price: '',
-      stock: 0,
-      description: '',
-      category: '',
-      brand: '',
-      weight_kg: '',
-      length_cm: '',
-      width_cm: '',
-      height_cm: ''
-    }
-  }
+
+  isEditing.value = true
+  formData.value = emptyForm()
   showModal.value = true
+
+  let full = product
+  try {
+    const { data } = await api.get(`/products/${product.id}/`)
+    full = data
+  } catch (error) {
+    console.error('Falha ao carregar detalhes do produto:', error)
+  }
+
+  existingImages.value = full.images || []
+
+  formData.value = {
+    id: full.id,
+    name: full.name || '',
+    sku: full.sku || '',
+    oem_code: full.oem_code || '',
+    price: full.price ?? '',
+    stock: full.stock ?? 0,
+    description: full.description || '',
+    category: full.category ? String(full.category) : '',
+    brand: full.brand ? String(full.brand) : '',
+    weight_kg: full.weight_kg ?? '',
+    length_cm: full.length_cm ?? '',
+    width_cm: full.width_cm ?? '',
+    height_cm: full.height_cm ?? ''
+  }
 }
 
 const closeModal = () => {
@@ -205,8 +165,8 @@ const submitNewCategory = async () => {
   isSavingNewCategory.value = true
   try {
     const newCat = await productStore.createCategory(newCategoryName.value.trim())
-    categories.value.push(newCat) 
-    formData.value.category = newCat.id 
+    categories.value.push(newCat)
+    formData.value.category = newCat.id
     closeCategoryDialog()
   } catch (error) {
     let errorMsg = 'Erro ao criar categoria.'
@@ -220,13 +180,12 @@ const submitNewCategory = async () => {
 const deleteSelectedCategory = async () => {
   const catId = formData.value.category
   if (!catId) return
-  
   if (!confirm('Tem certeza que deseja excluir esta Categoria permanentemente? Se houver peças vinculadas a ela, a exclusão será bloqueada.')) return
 
   try {
     await productStore.deleteCategory(catId)
     categories.value = categories.value.filter(c => c.id !== catId)
-    formData.value.category = '' 
+    formData.value.category = ''
     if (filters.value.category === catId) filters.value.category = ''
   } catch (error) {
     alert('A exclusão foi bloqueada pelo Banco de Dados. Ela provavelmente já possui produtos vinculados.')
@@ -244,7 +203,7 @@ const submitNewBrand = async () => {
   try {
     const newBrand = await productStore.createBrand(newBrandName.value.trim())
     brands.value.push(newBrand)
-    formData.value.brand = newBrand.id 
+    formData.value.brand = newBrand.id
     closeBrandDialog()
   } catch (error) {
     let errorMsg = 'Erro ao criar marca.'
@@ -258,27 +217,37 @@ const submitNewBrand = async () => {
 const deleteSelectedBrand = async () => {
   const brandId = formData.value.brand
   if (!brandId) return
-  
   if (!confirm('Tem certeza que deseja excluir esta Marca permanentemente? Se houver peças vinculadas a ela, a exclusão será bloqueada.')) return
 
   try {
     await productStore.deleteBrand(brandId)
     brands.value = brands.value.filter(b => b.id !== brandId)
-    formData.value.brand = '' 
+    formData.value.brand = ''
     if (filters.value.brand === brandId) filters.value.brand = ''
   } catch (error) {
     alert('A exclusão foi bloqueada pelo Banco de Dados. Ela provavelmente já possui produtos vinculados.')
   }
 }
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
 const handleFileUpload = (event) => {
   const files = Array.from(event.target.files)
+  const grandes = []
   files.forEach(file => {
+    if (file.size > MAX_IMAGE_BYTES) {
+      grandes.push(`${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`)
+      return
+    }
     selectedFiles.value.push(file)
     imagePreviews.value.push(URL.createObjectURL(file))
   })
+  if (grandes.length) {
+    alert(`Estas imagens passam de 5 MB e não foram adicionadas:\n${grandes.join('\n')}\n\nReduza o tamanho antes de enviar.`)
+  }
   event.target.value = ''
 }
+
 const removeExistingImage = async (img) => {
   if (!confirm('Excluir esta imagem permanentemente?')) return
   try {
@@ -289,89 +258,114 @@ const removeExistingImage = async (img) => {
   }
 }
 
-
 const removeImage = (idx) => {
   selectedFiles.value.splice(idx, 1)
   const removedPreview = imagePreviews.value.splice(idx, 1)[0]
-  if (removedPreview.startsWith('blob:')) {
+  if (removedPreview && removedPreview.startsWith('blob:')) {
     URL.revokeObjectURL(removedPreview)
   }
+}
+
+const numero = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return null
+  return String(valor).replace(',', '.').trim()
+}
+
+const descreverErro = (error) => {
+  const resp = error.response
+  if (!resp) return 'Não foi possível falar com o servidor. Verifique sua conexão.'
+
+  const d = resp.data
+  if (typeof d === 'string' || !d) {
+    return `Erro ${resp.status} no servidor. Se houver imagens, tente salvar sem elas e me avise.`
+  }
+
+  const rotulos = {
+    sku: 'SKU', name: 'Nome', price: 'Preço', stock: 'Estoque',
+    brand: 'Marca', category: 'Categoria', weight_kg: 'Peso',
+    description: 'Descrição', oem_code: 'Código OEM',
+    length_cm: 'Comprimento', width_cm: 'Largura', height_cm: 'Altura',
+    uploaded_images: 'Imagens', detail: 'Erro', non_field_errors: 'Erro',
+  }
+
+  const linhas = Object.entries(d).map(([campo, valor]) => {
+    const texto = Array.isArray(valor) ? valor.join(' ') : JSON.stringify(valor)
+    return `${rotulos[campo] || campo}: ${texto}`
+  })
+
+  return linhas.length ? linhas.join('\n') : `Erro ${resp.status}`
 }
 
 const saveProduct = async () => {
   isSaving.value = true
   try {
     const data = new FormData()
-    
+
     data.append('name', formData.value.name.trim())
     data.append('sku', formData.value.sku.trim())
-    data.append('price', formData.value.price)
+    data.append('price', numero(formData.value.price) ?? '')
     data.append('stock', formData.value.stock)
 
-    if (formData.value.oem_code) {
-      data.append('oem_code', formData.value.oem_code)
-    }
-    if (formData.value.description) {
-      data.append('description', formData.value.description)
-    }
-    if (formData.value.category) {
-      data.append('category', formData.value.category)
-    }
-    if (formData.value.brand) {
-      data.append('brand', formData.value.brand)
-    }
-    if (formData.value.weight_kg) {
-      data.append('weight_kg', formData.value.weight_kg)
-    }
-    if (formData.value.length_cm) {
-      data.append('length_cm', formData.value.length_cm)
-    }
-    if (formData.value.width_cm) {
-      data.append('width_cm', formData.value.width_cm)
-    }
-    if (formData.value.height_cm) {
-      data.append('height_cm', formData.value.height_cm)
-    }
+    if (formData.value.oem_code) data.append('oem_code', formData.value.oem_code.trim())
+    if (formData.value.description) data.append('description', formData.value.description)
+    if (formData.value.category) data.append('category', formData.value.category)
+    if (formData.value.brand) data.append('brand', formData.value.brand)
 
-    selectedFiles.value.forEach(file => {
-      data.append('uploaded_images', file)
+    const medidas = {
+      weight_kg: numero(formData.value.weight_kg),
+      length_cm: numero(formData.value.length_cm),
+      width_cm: numero(formData.value.width_cm),
+      height_cm: numero(formData.value.height_cm),
+    }
+    Object.entries(medidas).forEach(([campo, valor]) => {
+      if (valor !== null) data.append(campo, valor)
     })
 
+    let produtoId = formData.value.id
+
     if (isEditing.value) {
-      await api.patch(`/products/${formData.value.id}/`, data)
+      await api.patch(`/products/${produtoId}/`, data)
     } else {
-      await api.post('/products/', data)
+      const { data: criado } = await api.post('/products/', data)
+      produtoId = criado.id
     }
-    
+
+    if (selectedFiles.value.length) {
+      const falhas = []
+      for (const file of selectedFiles.value) {
+        const img = new FormData()
+        img.append('product', produtoId)
+        img.append('image', file)
+        img.append('is_main', 'false')
+        try {
+          await api.post('/images/', img)
+        } catch (err) {
+          falhas.push(file.name)
+          console.error('Falha ao enviar imagem:', file.name, err.response?.status, err.response?.data)
+        }
+      }
+      if (falhas.length) {
+        alert(`O produto foi salvo, mas estas imagens não subiram:\n${falhas.join('\n')}`)
+      }
+    }
+
     await fetchData()
     closeModal()
   } catch (error) {
-    let errorMsg = 'Erro ao salvar produto.'
-    if (error.response && error.response.data) {
-      const errData = error.response.data
-      const firstKey = Object.keys(errData)[0]
-      const detalhe = Array.isArray(errData[firstKey]) ? errData[firstKey][0] : errData[firstKey]
-      const rotulos = {
-        sku: 'SKU', name: 'Nome', price: 'Preço', stock: 'Estoque',
-        brand: 'Marca', category: 'Categoria', weight_kg: 'Peso',
-        length_cm: 'Comprimento', width_cm: 'Largura', height_cm: 'Altura',
-      }
-      errorMsg = `${rotulos[firstKey] || firstKey}: ${detalhe}`
-    }
-    alert(errorMsg)
+    console.error('Resposta do servidor:', error.response?.status, error.response?.data)
+    alert(descreverErro(error))
   } finally {
     isSaving.value = false
   }
 }
 
 const deleteProduct = async (id) => {
-  if (confirm('Tem certeza que deseja excluir este produto?')) {
-    try {
-      await api.delete(`/products/${id}/`)
-      await fetchData()
-    } catch (error) {
-      alert('Erro ao excluir produto.')
-    }
+  if (!confirm('Tem certeza que deseja excluir este produto?')) return
+  try {
+    await api.delete(`/products/${id}/`)
+    await fetchData()
+  } catch (error) {
+    alert('Erro ao excluir produto.')
   }
 }
 
@@ -431,7 +425,7 @@ onMounted(() => {
         <div class="spinner"></div>
         <p>Carregando produtos...</p>
       </div>
-      
+
       <div class="table-responsive" v-else>
         <table class="data-table">
           <thead>
@@ -445,9 +439,7 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="filteredProducts.length === 0">
-              <td colspan="5" class="empty-state">
-                Nenhum produto encontrado.
-              </td>
+              <td colspan="5" class="empty-state">Nenhum produto encontrado.</td>
             </tr>
             <tr v-for="product in filteredProducts" :key="product.id">
               <td>
@@ -504,7 +496,7 @@ onMounted(() => {
             </svg>
           </button>
         </div>
-        
+
         <div class="modal-body">
           <form @submit.prevent="saveProduct" class="product-form">
             <div class="form-group full-width">
@@ -537,7 +529,7 @@ onMounted(() => {
             <div class="form-row">
               <div class="form-group">
                 <label>Peso (kg)</label>
-                <input type="number" step="0.01" v-model="formData.weight_kg" placeholder="1.50">
+                <input type="number" step="0.001" v-model="formData.weight_kg" placeholder="1.500">
               </div>
               <div class="form-group">
                 <label>Comprimento (cm)</label>
@@ -576,7 +568,7 @@ onMounted(() => {
                   </button>
                 </div>
               </div>
-              
+
               <div class="form-group">
                 <label>Marca</label>
                 <div class="select-with-button">
@@ -600,11 +592,10 @@ onMounted(() => {
 
             <div class="form-group full-width">
               <label>Imagens do Produto</label>
+
               <div class="image-previews" v-if="existingImages.length" style="margin-bottom: 1rem;">
                 <div class="preview-item" v-for="img in existingImages" :key="img.id">
-                  <img
-                    :src="img.image.startsWith('http') ? img.image : `https://dls-auto-pecas-api.onrender.com${img.image}`"
-                    alt="Imagem cadastrada">
+                  <img :src="resolveImage(img.image)" alt="Imagem cadastrada">
                   <button type="button" class="remove-img" @click="removeExistingImage(img)">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -612,11 +603,12 @@ onMounted(() => {
                   </button>
                 </div>
               </div>
+
               <div class="file-upload-box">
                 <input type="file" multiple accept="image/*" @change="handleFileUpload" class="file-input">
                 <div class="upload-placeholder" v-if="imagePreviews.length === 0">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                  <span>Clique para selecionar várias imagens</span>
+                  <span>Clique para selecionar várias imagens (máx. 5 MB cada)</span>
                 </div>
                 <div class="image-previews" v-else>
                   <div class="preview-item" v-for="(img, idx) in imagePreviews" :key="idx">
@@ -698,669 +690,265 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.select-with-button {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.select-with-button select {
-  flex: 1;
-}
+.select-with-button { display: flex; gap: 0.5rem; align-items: center; }
+.select-with-button select { flex: 1; }
 
 .btn-add-inline {
-  background-color: var(--primary-light);
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  width: 2.75rem;
-  height: 2.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  flex-shrink: 0;
+  background-color: var(--primary-light); color: white; border: none;
+  border-radius: 0.5rem; width: 2.75rem; height: 2.75rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background-color 0.2s; flex-shrink: 0;
 }
-
-.btn-add-inline:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-add-inline svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
+.btn-add-inline:hover { background-color: var(--primary-hover); }
+.btn-add-inline svg { width: 1.25rem; height: 1.25rem; }
 
 .btn-delete-inline {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 0.5rem;
-  width: 2.75rem;
-  height: 2.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  background-color: rgba(239, 68, 68, 0.1); color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem;
+  width: 2.75rem; height: 2.75rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; flex-shrink: 0;
 }
+.btn-delete-inline:hover { background-color: #ef4444; color: white; }
+.btn-delete-inline svg { width: 1.1rem; height: 1.1rem; }
 
-.btn-delete-inline:hover {
-  background-color: #ef4444;
-  color: white;
-}
+.nested-modal { z-index: 150; background-color: rgba(0, 0, 0, 0.65); }
+.small-modal { max-width: 400px; }
 
-.btn-delete-inline svg {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.nested-modal {
-  z-index: 150;
-  background-color: rgba(0, 0, 0, 0.65);
-}
-
-.small-modal {
-  max-width: 400px;
-}
-
-.admin-products-page {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.page-header {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+.admin-products-page { display: flex; flex-direction: column; gap: 2rem; }
+.page-header { display: flex; flex-direction: column; gap: 1rem; }
 
 @media (min-width: 640px) {
-  .page-header {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
+  .page-header { flex-direction: row; justify-content: space-between; align-items: flex-end; }
 }
 
 .page-title {
-  font-size: 2rem;
-  color: var(--text-main);
-  margin: 0 0 0.25rem 0;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 2rem; color: var(--text-main); margin: 0 0 0.25rem 0;
+  font-weight: 800; letter-spacing: -0.02em;
 }
-
-.page-subtitle {
-  color: var(--text-muted);
-  margin: 0;
-  font-weight: 500;
-}
+.page-subtitle { color: var(--text-muted); margin: 0; font-weight: 500; }
 
 .btn-primary {
-  background-color: var(--primary-light);
-  color: #ffffff;
-  border: none;
-  padding: 0.875rem 1.5rem;
-  border-radius: 0.75rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  background-color: var(--primary-light); color: #ffffff; border: none;
+  padding: 0.875rem 1.5rem; border-radius: 0.75rem; font-weight: 800;
+  cursor: pointer; transition: all 0.3s ease;
+  display: flex; align-items: center; gap: 0.5rem;
 }
-
 .btn-primary:hover {
-  background-color: var(--primary-hover);
-  transform: translateY(-2px);
+  background-color: var(--primary-hover); transform: translateY(-2px);
   box-shadow: 0 10px 15px -3px rgba(0, 168, 89, 0.3);
 }
-
-.btn-primary svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
+.btn-primary svg { width: 1.25rem; height: 1.25rem; }
 
 .filters-card {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  box-shadow: var(--shadow-sm);
+  background-color: var(--surface-color); border: 1px solid var(--border-color);
+  border-radius: 1rem; padding: 1.5rem;
+  display: flex; flex-direction: column; gap: 1.5rem; box-shadow: var(--shadow-sm);
 }
 
-.search-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
+.search-bar { position: relative; display: flex; align-items: center; width: 100%; }
 .search-bar svg {
-  position: absolute;
-  left: 1rem;
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--text-muted);
+  position: absolute; left: 1rem; width: 1.25rem; height: 1.25rem; color: var(--text-muted);
 }
-
 .search-bar input {
-  width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
+  width: 100%; padding: 1rem 1rem 1rem 3rem;
+  border: 1px solid var(--border-color); border-radius: 0.75rem;
+  background-color: var(--bg-color); color: var(--text-main);
+  font-size: 0.95rem; outline: none; transition: border-color 0.2s; box-sizing: border-box;
 }
+.search-bar input:focus { border-color: var(--primary-light); }
 
-.search-bar input:focus {
-  border-color: var(--primary-light);
-}
-
-.filter-options {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-
-@media (min-width: 640px) {
-  .filter-options {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 992px) {
-  .filter-options {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
+.filter-options { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 640px) { .filter-options { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 992px) { .filter-options { grid-template-columns: repeat(4, 1fr); } }
 
 .input-group select {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  font-size: 0.9rem;
-  font-weight: 600;
-  outline: none;
-  cursor: pointer;
-  box-sizing: border-box;
+  width: 100%; padding: 0.875rem 1rem;
+  border: 1px solid var(--border-color); border-radius: 0.75rem;
+  background-color: var(--bg-color); color: var(--text-main);
+  font-size: 0.9rem; font-weight: 600; outline: none; cursor: pointer; box-sizing: border-box;
 }
 
 .btn-clear {
-  background-color: var(--surface-hover);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  padding: 0.875rem 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
+  background-color: var(--surface-hover); color: var(--text-main);
+  border: 1px solid var(--border-color); border-radius: 0.75rem;
+  padding: 0.875rem 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
 }
-
-.btn-clear:hover {
-  background-color: var(--border-color);
-}
+.btn-clear:hover { background-color: var(--border-color); }
 
 .table-card {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  background-color: var(--surface-color); border: 1px solid var(--border-color);
+  border-radius: 1rem; box-shadow: var(--shadow-sm); overflow: hidden;
 }
 
 .loading-state, .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  color: var(--text-muted);
-  font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 4rem 2rem; text-align: center; color: var(--text-muted); font-weight: 600;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--border-color);
-  border-top-color: var(--primary-light);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  width: 40px; height: 40px; border: 4px solid var(--border-color);
+  border-top-color: var(--primary-light); border-radius: 50%;
+  animation: spin 1s linear infinite; margin-bottom: 1rem;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.table-responsive {
-  overflow-x: auto;
-  width: 100%;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  min-width: 800px;
-}
+.table-responsive { overflow-x: auto; width: 100%; }
+.data-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
 
 .data-table th {
-  background-color: var(--surface-hover);
-  padding: 1rem 1.5rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-color);
+  background-color: var(--surface-hover); padding: 1rem 1.5rem;
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); border-bottom: 1px solid var(--border-color);
 }
-
 .data-table td {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: middle;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;
 }
+.data-table tr:hover td { background-color: var(--surface-hover); }
+.data-table tr:last-child td { border-bottom: none; }
 
-.data-table tr:hover td {
-  background-color: var(--surface-hover);
-}
-
-.data-table tr:last-child td {
-  border-bottom: none;
-}
-
-.product-cell {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
+.product-cell { display: flex; align-items: center; gap: 1rem; }
 
 .img-wrapper {
-  width: 48px;
-  height: 48px;
-  background-color: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0.25rem;
+  width: 48px; height: 48px; background-color: var(--bg-color);
+  border: 1px solid var(--border-color); border-radius: 0.5rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; padding: 0.25rem;
 }
+.img-wrapper img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.img-wrapper svg { width: 1.5rem; height: 1.5rem; color: var(--border-color); }
 
-.img-wrapper img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.img-wrapper svg {
-  width: 1.5rem;
-  height: 1.5rem;
-  color: var(--border-color);
-}
-
-.product-info {
-  display: flex;
-  flex-direction: column;
-}
-
+.product-info { display: flex; flex-direction: column; }
 .product-info .brand {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;
+  font-weight: 800; letter-spacing: 0.05em;
 }
+.product-info .name { font-size: 0.95rem; color: var(--text-main); font-weight: 700; }
 
-.product-info .name {
-  font-size: 0.95rem;
-  color: var(--text-main);
-  font-weight: 700;
-}
-
-.codes-cell {
-  display: flex;
-  flex-direction: column;
-}
-
-.codes-cell .sku {
-  font-weight: 700;
-  color: var(--text-main);
-  font-size: 0.9rem;
-}
-
+.codes-cell { display: flex; flex-direction: column; }
+.codes-cell .sku { font-weight: 700; color: var(--text-main); font-size: 0.9rem; }
 .codes-cell .oem {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  background-color: var(--surface-hover);
-  padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
-  display: inline-block;
-  margin-top: 0.25rem;
-  width: fit-content;
+  font-size: 0.75rem; color: var(--text-muted); background-color: var(--surface-hover);
+  padding: 0.1rem 0.4rem; border-radius: 0.25rem; display: inline-block;
+  margin-top: 0.25rem; width: fit-content;
 }
 
-.price-cell {
-  font-weight: 800;
-  color: var(--primary-dark);
-  font-size: 1.05rem;
-}
+.price-cell { font-weight: 800; color: var(--primary-dark); font-size: 1.05rem; }
 
 .status-badge {
-  padding: 0.3rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  display: inline-block;
-  white-space: nowrap;
+  padding: 0.3rem 0.75rem; border-radius: 9999px; font-size: 0.8rem;
+  font-weight: 700; display: inline-block; white-space: nowrap;
 }
+.status-active { background-color: rgba(0, 168, 89, 0.15); color: var(--primary-light); }
+.status-danger { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
-.status-active {
-  background-color: rgba(0, 168, 89, 0.15);
-  color: var(--primary-light);
-}
-
-.status-danger {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
+.action-buttons { display: flex; gap: 0.5rem; }
 
 .btn-icon {
-  background: none;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text-muted);
+  background: none; border: 1px solid var(--border-color); border-radius: 0.5rem;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s ease; color: var(--text-muted);
 }
-
 .btn-icon.edit:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6;
 }
-
 .btn-icon.delete:hover {
-  background-color: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444;
 }
-
-.btn-icon svg {
-  width: 1.1rem;
-  height: 1.1rem;
-}
+.btn-icon svg { width: 1.1rem; height: 1.1rem; }
 
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 1rem;
 }
 
 .modal-content {
-  background-color: var(--surface-color);
-  width: 100%;
-  max-width: 650px;
-  border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
+  background-color: var(--surface-color); width: 100%; max-width: 650px;
+  border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  display: flex; flex-direction: column; max-height: 90vh;
 }
 
 .modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 1.5rem; border-bottom: 1px solid var(--border-color);
+  display: flex; justify-content: space-between; align-items: center;
 }
+.modal-header h2 { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 800; }
 
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  color: var(--text-main);
-  font-weight: 800;
-}
+.close-modal { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem; }
+.close-modal:hover { color: #ef4444; }
+.close-modal svg { width: 1.5rem; height: 1.5rem; }
 
-.close-modal {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-}
+.modal-body { padding: 1.5rem; overflow-y: auto; }
+.product-form { display: flex; flex-direction: column; gap: 1.25rem; }
 
-.close-modal:hover {
-  color: #ef4444;
-}
-
-.close-modal svg {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.modal-body {
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.product-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.form-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.form-row .form-group {
-  flex: 1;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
+.form-row { display: flex; gap: 1rem; }
+.form-row .form-group { flex: 1; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: 0.85rem; font-weight: 700; color: var(--text-main); }
 
 .form-group input, .form-group select, .form-group textarea {
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  font-size: 0.9rem;
-  outline: none;
-  font-family: inherit;
+  padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;
+  background-color: var(--bg-color); color: var(--text-main);
+  font-size: 0.9rem; outline: none; font-family: inherit;
 }
-
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
   border-color: var(--primary-light);
 }
 
 .file-upload-box {
-  position: relative;
-  border: 2px dashed var(--border-color);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  background-color: var(--bg-color);
-  transition: border-color 0.2s;
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative; border: 2px dashed var(--border-color); border-radius: 0.5rem;
+  padding: 1rem; background-color: var(--bg-color); transition: border-color 0.2s;
+  min-height: 120px; display: flex; align-items: center; justify-content: center;
 }
-
-.file-upload-box:hover {
-  border-color: var(--primary-light);
-}
+.file-upload-box:hover { border-color: var(--primary-light); }
 
 .file-input {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 10;
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; z-index: 10;
 }
 
 .upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--text-muted);
-  gap: 0.5rem;
+  display: flex; flex-direction: column; align-items: center;
+  color: var(--text-muted); gap: 0.5rem;
 }
+.upload-placeholder svg { width: 2rem; height: 2rem; }
+.upload-placeholder span { font-size: 0.85rem; font-weight: 600; }
 
-.upload-placeholder svg {
-  width: 2rem;
-  height: 2rem;
-}
-
-.upload-placeholder span {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.image-previews {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  width: 100%;
-  z-index: 20;
-}
+.image-previews { display: flex; flex-wrap: wrap; gap: 1rem; width: 100%; z-index: 20; }
 
 .preview-item {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  background-color: #fff;
+  position: relative; width: 80px; height: 80px; border-radius: 0.5rem;
+  overflow: hidden; border: 1px solid var(--border-color); background-color: #fff;
 }
-
-.preview-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.preview-item img { width: 100%; height: 100%; object-fit: cover; }
 
 .remove-img {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  z-index: 30;
+  position: absolute; top: 0.25rem; right: 0.25rem;
+  background-color: #ef4444; color: white; border: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; z-index: 30;
 }
-
-.remove-img svg {
-  width: 12px;
-  height: 12px;
-}
+.remove-img svg { width: 12px; height: 12px; }
 
 .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
+  display: flex; justify-content: flex-end; gap: 1rem;
+  margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);
 }
 
 .btn-cancel, .btn-save {
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+  font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
 }
-
-.btn-cancel {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-}
-
-.btn-cancel:hover {
-  background-color: var(--surface-hover);
-}
-
-.btn-save {
-  background-color: var(--primary-light);
-  border: none;
-  color: #ffffff;
-}
-
-.btn-save:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-}
-
-.btn-save:disabled, .btn-cancel:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-cancel { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+.btn-cancel:hover { background-color: var(--surface-hover); }
+.btn-save { background-color: var(--primary-light); border: none; color: #ffffff; }
+.btn-save:hover:not(:disabled) { background-color: var(--primary-hover); }
+.btn-save:disabled, .btn-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (max-width: 640px) {
-  .form-row {
-    flex-direction: column;
-    gap: 1.25rem;
-  }
+  .form-row { flex-direction: column; gap: 1.25rem; }
 }
 </style>
