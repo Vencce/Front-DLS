@@ -168,7 +168,8 @@ const createOrder = async () => {
     }
   } catch (err) {
     const d = err.response?.data
-    erroPedido.value = d?.shipping || d?.error ||
+    const msgItens = Array.isArray(d?.items) ? d.items[0] : d?.items
+    erroPedido.value = d?.shipping || d?.error || msgItens ||
       'Não foi possível finalizar o pedido. Verifique os dados.'
   } finally {
     isLoading.value = false
