@@ -58,7 +58,10 @@ export const useAuthStore = defineStore('auth', {
 
         return me.data
       } catch (err) {
-        this.error = err.response?.data?.detail || 'Erro ao fazer login'
+        const detail = err.response?.data?.detail
+        this.error = detail?.includes('No active account')
+          ? 'Usuário ou senha inválidos.'
+          : (detail || 'Erro ao fazer login')
         throw err
       } finally {
         this.loading = false
