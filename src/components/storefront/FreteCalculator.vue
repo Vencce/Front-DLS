@@ -1,9 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import api from '../../services/api' // Ajuste o path para a sua instância axios
+import api from '../../services/api'
 
-// O componente recebe os itens que serão calculados.
-// Exemplo: [{ product_id: 'uuid', quantity: 1 }]
 const props = defineProps({
   items: {
     type: Array,
@@ -16,23 +14,24 @@ const isLoading = ref(false)
 const results = ref(null)
 const errorMessage = ref('')
 
-// Máscara simples para CEP (00000-000)
+const formatPrice = (value) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
+
 const maskCep = () => {
-  let v = cep.value.replace(/\D/g, '')
-  if (v.length > 5) {
-    v = v.replace(/^(\d{5})(\d)/, '$1-$2')
-  }
-  cep.value = v.slice(0, 9) // limita a 9 caracteres
+  let v = cep.value.replace(/\D/g, '').slice(0, 8)
+  if (v.length > 5) v = `${v.slice(0, 5)}-${v.slice(5)}`
+  cep.value = v
+  results.value = null
+  errorMessage.value = ''
 }
 
 const calcularFrete = async () => {
-  // Validação básica do tamanho do CEP
-  if (cep.value.replace(/\D/g, '').length !== 8) {
+  const cleanCep = cep.value.replace(/\D/g, '')
+  if (cleanCep.length !== 8) {
     errorMessage.value = 'Digite um CEP válido com 8 dígitos.'
     return
   }
-  
-  if (props.items.length === 0) {
+  if (!props.items.length) {
     errorMessage.value = 'Nenhum item para calcular.'
     return
   }
@@ -42,19 +41,14 @@ const calcularFrete = async () => {
   results.value = null
 
   try {
-    const response = await api.post('/shipping/calculate/', {
-      cep_destino: cep.value,
+    const { data } = await api.post('/orders/shipping/simulate/', {
+      zip_code: cleanCep,
       items: props.items
     })
-    
-    // Sucesso, recebemos array [{service: 'PAC', price: '25,00', days: 7}, ...]
-    results.value = response.data
+    results.value = data
   } catch (error) {
-    if (error.response && error.response.data && error.response.data.error) {
-      errorMessage.value = error.response.data.error
-    } else {
-      errorMessage.value = 'Falha ao se conectar com os Correios. Tente novamente.'
-    }
+    errorMessage.value = error.response?.data?.error
+      || 'Não foi possível calcular o frete. Tente novamente.'
   } finally {
     isLoading.value = false
   }
@@ -87,16 +81,18 @@ const calcularFrete = async () => {
     <div v-if="errorMessage" class="frete-error">
       {{ errorMessage }}
     </div>
-
     <div v-if="results && results.length > 0" class="frete-results">
-      <div v-for="res in results" :key="res.service" class="frete-option">
+      <div v-for="res in results" :key="res.service_id" class="frete-option">
         <div class="frete-info">
           <span class="frete-service">{{ res.service }}</span>
-          <span class="frete-days">Chega em até {{ res.days }} dias úteis</span>
+          <span class="frete-days">Chega em até {{ res.deadline_days }} dias úteis</span>
         </div>
-        <div class="frete-price">R$ {{ res.price }}</div>
-        <div v-if="res.warning" class="frete-warning">{{ res.warning }}</div>
+        <div class="frete-price">{{ formatPrice(res.price) }}</div>
       </div>
+    </div>
+
+    <div v-if="results && results.length === 0" class="frete-error">
+      Nenhuma entrega disponível para este CEP.
     </div>
   </div>
 </template>
