@@ -329,23 +329,30 @@ const saveProduct = async () => {
       const { data: criado } = await api.post('/products/', data)
       produtoId = criado.id
     }
-
     if (selectedFiles.value.length) {
       const falhas = []
-      for (const file of selectedFiles.value) {
+      const semImagem = !existingImages.value.length
+
+      for (const [i, file] of selectedFiles.value.entries()) {
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 4)
+        const curto = `${formData.value.sku.trim().toLowerCase()}-${Date.now()}-${i}.${ext}`
+
         const img = new FormData()
         img.append('product', produtoId)
-        img.append('image', file)
-        img.append('is_main', 'false')
+        img.append('image', new File([file], curto, { type: file.type }))
+        img.append('is_main', semImagem && i === 0 ? 'true' : 'false')
+
         try {
           await api.post('/images/', img)
         } catch (err) {
-          falhas.push(file.name)
-          console.error('Falha ao enviar imagem:', file.name, err.response?.status, err.response?.data)
+          const detalhe = err.response?.data
+          falhas.push(`${file.name} — ${JSON.stringify(detalhe)}`)
+          console.error('Falha ao enviar imagem:', file.name, err.response?.status, detalhe)
         }
       }
+
       if (falhas.length) {
-        alert(`O produto foi salvo, mas estas imagens não subiram:\n${falhas.join('\n')}`)
+        alert(`O produto foi salvo, mas estas imagens não subiram:\n\n${falhas.join('\n\n')}`)
       }
     }
 
