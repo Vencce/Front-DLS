@@ -62,6 +62,26 @@ const listaCompletaProdutos = (pedido) => {
   return items.map(item => `${item.quantity}x ${nomeProduto(item.product_name)}`).join('\n')
 }
 
+// Percorre todas as páginas de /orders/ usando o campo "next" da resposta,
+// para não depender de um limite fixo de page_size.
+const fetchTodosPedidos = async () => {
+  let pedidos = []
+  let url = '/orders/'
+  let params = { page_size: 200 }
+
+  while (url) {
+    const resposta = await api.get(url, { params })
+    const dados = resposta.data
+    pedidos = pedidos.concat(dados.results || dados)
+
+    // A partir da 2ª chamada, "next" já vem com os parâmetros de página embutidos na URL
+    url = dados.next || null
+    params = undefined
+  }
+
+  return pedidos
+}
+
 const fetchDashboardData = async () => {
   try {
     loading.value = true
@@ -73,8 +93,7 @@ const fetchDashboardData = async () => {
     // Busca a lista completa de pedidos (com itens), pois /dashboard/resumo/ não traz
     // os produtos de cada pedido. Usada tanto para recalcular o faturamento quanto
     // para montar a tabela de Últimos Pedidos com os produtos visíveis.
-    const respostaPedidos = await api.get('/orders/', { params: { page_size: 1000 } })
-    const todosPedidos = respostaPedidos.data.results || respostaPedidos.data
+    const todosPedidos = await fetchTodosPedidos()
 
     // Faturamento Total = total do pedido (produtos + frete), somente de pedidos pagos
     stats.value.faturamento_total = todosPedidos
