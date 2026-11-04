@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import api from '../../services/api'
 import { useProductStore } from '../../stores/productStore'
 
@@ -24,6 +24,10 @@ const newBrandName = ref('')
 const isSavingNewBrand = ref(false)
 
 const filters = ref({ search: '', category: '', brand: '', stock: '' })
+
+// Paginação da tabela
+const currentPage = ref(1)
+const itemsPerPage = 20
 
 const emptyForm = () => ({
   id: null, name: '', sku: '', oem_code: '', price: '', stock: 0,
@@ -58,15 +62,34 @@ const clearFilters = () => {
   filters.value = { search: '', category: '', brand: '', stock: '' }
 }
 
+// Percorre todas as páginas de /products/ usando o campo "next" da resposta,
+// para não depender de um limite fixo de page_size e perder produtos do catálogo.
+const fetchAllProducts = async () => {
+  let produtos = []
+  let url = '/products/'
+  let params = { page_size: 200 }
+
+  while (url) {
+    const resposta = await api.get(url, { params })
+    const dados = resposta.data
+    produtos = produtos.concat(dados.results || dados)
+
+    url = dados.next || null
+    params = undefined
+  }
+
+  return produtos
+}
+
 const fetchData = async () => {
   isLoading.value = true
   try {
-    const [prodRes, catRes, brandRes] = await Promise.all([
-      api.get('/products/', { params: { page_size: 200 } }),
+    const [prodList, catRes, brandRes] = await Promise.all([
+      fetchAllProducts(),
       api.get('/categories/', { params: { page_size: 200 } }),
       api.get('/brands/', { params: { page_size: 200 } })
     ])
-    products.value = prodRes.data.results || prodRes.data
+    products.value = prodList
     categories.value = catRes.data.results || catRes.data
     brands.value = brandRes.data.results || brandRes.data
   } catch (error) {
@@ -106,6 +129,57 @@ const filteredProducts = computed(() => {
   }
 
   return result
+})
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage))
+})
+
+const paginatedProducts = computed(() => {
+  const inicio = (currentPage.value - 1) * itemsPerPage
+  return filteredProducts.value.slice(inicio, inicio + itemsPerPage)
+})
+
+// Números de página exibidos na navegação, com reticências quando há muitas páginas
+const paginasVisiveis = computed(() => {
+  const total = totalPages.value
+  const atual = currentPage.value
+  const paginas = []
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) paginas.push(i)
+    return paginas
+  }
+
+  paginas.push(1)
+  if (atual > 3) paginas.push('...')
+
+  const inicio = Math.max(2, atual - 1)
+  const fim = Math.min(total - 1, atual + 1)
+  for (let i = inicio; i <= fim; i++) paginas.push(i)
+
+  if (atual < total - 2) paginas.push('...')
+  paginas.push(total)
+
+  return paginas
+})
+
+const irParaPagina = (pagina) => {
+  if (pagina === '...' || pagina < 1 || pagina > totalPages.value) return
+  currentPage.value = pagina
+}
+
+// Volta para a página 1 sempre que um filtro mudar
+watch(filters, () => {
+  currentPage.value = 1
+}, { deep: true })
+
+// Se a lista filtrada encolher (ex: exclusão de produto) e a página atual deixar
+// de existir, ajusta para a última página válida
+watch(filteredProducts, () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
 })
 
 const openModal = async (product = null) => {
@@ -442,64 +516,103 @@ onMounted(() => {
         <p>Carregando produtos...</p>
       </div>
 
-      <div class="table-responsive" v-else>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>SKU / OEM</th>
-              <th>Preço</th>
-              <th>Estoque</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="filteredProducts.length === 0">
-              <td colspan="5" class="empty-state">Nenhum produto encontrado.</td>
-            </tr>
-            <tr v-for="product in filteredProducts" :key="product.id">
-              <td>
-                <div class="product-cell">
-                  <div class="img-wrapper">
-                    <img v-if="getProductImage(product)" :src="getProductImage(product)" :alt="product.name">
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+      <template v-else>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>SKU / OEM</th>
+                <th>Preço</th>
+                <th>Estoque</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="filteredProducts.length === 0">
+                <td colspan="5" class="empty-state">Nenhum produto encontrado.</td>
+              </tr>
+              <tr v-for="product in paginatedProducts" :key="product.id">
+                <td>
+                  <div class="product-cell">
+                    <div class="img-wrapper">
+                      <img v-if="getProductImage(product)" :src="getProductImage(product)" :alt="product.name">
+                      <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div class="product-info">
+                      <span class="brand">
+                        {{ product.brand_name || 'Sem Marca' }} • {{ product.category_name || 'Sem Categoria' }}
+                      </span>
+                      <span class="name">{{ product.name }}</span>
+                    </div>
                   </div>
-                  <div class="product-info">
-                    <span class="brand">
-                      {{ product.brand_name || 'Sem Marca' }} • {{ product.category_name || 'Sem Categoria' }}
-                    </span>
-                    <span class="name">{{ product.name }}</span>
+                </td>
+                <td>
+                  <div class="codes-cell">
+                    <span class="sku">{{ product.sku || 'N/A' }}</span>
+                    <span class="oem" v-if="product.oem_code">OEM: {{ product.oem_code }}</span>
                   </div>
-                </div>
-              </td>
-              <td>
-                <div class="codes-cell">
-                  <span class="sku">{{ product.sku || 'N/A' }}</span>
-                  <span class="oem" v-if="product.oem_code">OEM: {{ product.oem_code }}</span>
-                </div>
-              </td>
-              <td class="price-cell">{{ formatPrice(product.price) }}</td>
-              <td>
-                <span class="status-badge" :class="product.stock > 0 ? 'status-active' : 'status-danger'">
-                  {{ product.stock }} un
-                </span>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <button type="button" class="btn-icon edit" title="Editar" @click="openModal(product)">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
-                  <button type="button" class="btn-icon delete" title="Excluir" @click="deleteProduct(product.id)">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </td>
+                <td class="price-cell">{{ formatPrice(product.price) }}</td>
+                <td>
+                  <span class="status-badge" :class="product.stock > 0 ? 'status-active' : 'status-danger'">
+                    {{ product.stock }} un
+                  </span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button type="button" class="btn-icon edit" title="Editar" @click="openModal(product)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    </button>
+                    <button type="button" class="btn-icon delete" title="Excluir" @click="deleteProduct(product.id)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination" v-if="filteredProducts.length > 0">
+          <span class="pagination-info">
+            Mostrando {{ (currentPage - 1) * itemsPerPage + 1 }}–{{ Math.min(currentPage * itemsPerPage, filteredProducts.length) }}
+            de {{ filteredProducts.length }} produtos
+          </span>
+
+          <div class="pagination-controls" v-if="totalPages > 1">
+            <button class="pagination-btn" :disabled="currentPage === 1" @click="irParaPagina(currentPage - 1)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Anterior
+            </button>
+
+            <div class="pagination-pages">
+              <template v-for="(pagina, idx) in paginasVisiveis" :key="idx">
+                <span v-if="pagina === '...'" class="pagination-ellipsis">...</span>
+                <button
+                  v-else
+                  class="pagination-page"
+                  :class="{ active: pagina === currentPage }"
+                  @click="irParaPagina(pagina)"
+                >
+                  {{ pagina }}
+                </button>
+              </template>
+            </div>
+
+            <button class="pagination-btn" :disabled="currentPage === totalPages" @click="irParaPagina(currentPage + 1)">
+              Próxima
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </template>
     </div>
 
     <div class="modal-overlay" v-if="showModal" @click.self="closeModal">
@@ -872,6 +985,104 @@ onMounted(() => {
   background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444;
 }
 .btn-icon svg { width: 1.1rem; height: 1.1rem; }
+
+/* Paginação */
+.pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+@media (min-width: 768px) {
+  .pagination {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.pagination-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--primary-light);
+  border-color: var(--primary-light);
+  color: #ffffff;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-page {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-page:hover {
+  background-color: var(--surface-hover);
+}
+
+.pagination-page.active {
+  background-color: var(--primary-light);
+  border-color: var(--primary-light);
+  color: #ffffff;
+}
+
+.pagination-ellipsis {
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: 0 0.25rem;
+}
 
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
