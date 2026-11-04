@@ -36,40 +36,56 @@ const getStatusClass = (status) => {
 // Considera "pago" qualquer status que indique que a venda foi efetivada
 const STATUS_PAGOS = ['paid', 'pago', 'confirmed', 'shipped', 'enviado', 'delivered', 'entregue']
 
-// Soma apenas o valor dos produtos (sem frete) dos pedidos realmente pagos.
-// Necessário buscar /orders/ porque /dashboard/resumo/ não traz os itens de cada pedido.
-const fetchFaturamentoReal = async () => {
-  try {
-    const resposta = await api.get('/orders/', { params: { page_size: 1000 } })
-    const pedidos = resposta.data.results || resposta.data
+// Os dados de product_name vêm em minúsculas da API; isto só ajusta a exibição
+const nomeProduto = (nome) => {
+  if (!nome) return 'Produto'
+  return nome.charAt(0).toUpperCase() + nome.slice(1)
+}
 
-    return pedidos
-      .filter(pedido => STATUS_PAGOS.includes(String(pedido.status).toLowerCase()))
-      .reduce((totalGeral, pedido) => {
-        const itens = pedido.items || []
-        const subtotalPedido = itens.reduce((soma, item) => soma + Number(item.subtotal || 0), 0)
-        return totalGeral + subtotalPedido
-      }, 0)
-  } catch (error) {
-    console.error('Erro ao calcular faturamento real:', error)
-    return null
+const resumoProdutos = (pedido) => {
+  const items = pedido.items || []
+  if (items.length === 0) return 'Sem itens'
+
+  const principal = items[0]
+  let texto = nomeProduto(principal.product_name)
+  if (principal.quantity > 1) texto += ` (${principal.quantity}x)`
+
+  const restantes = items.length - 1
+  if (restantes > 0) {
+    texto += ` + ${restantes} ${restantes === 1 ? 'item' : 'itens'}`
   }
+  return texto
+}
+
+const listaCompletaProdutos = (pedido) => {
+  const items = pedido.items || []
+  return items.map(item => `${item.quantity}x ${nomeProduto(item.product_name)}`).join('\n')
 }
 
 const fetchDashboardData = async () => {
   try {
     loading.value = true
     const response = await api.get('/dashboard/resumo/')
-    
+
     stats.value = response.data.estatisticas || { faturamento_total: 0, pedidos_realizados: 0, novos_clientes: 0 }
-    recentOrders.value = response.data.ultimos_pedidos || []
     topProducts.value = response.data.produtos_mais_vendidos || []
 
-    const faturamentoReal = await fetchFaturamentoReal()
-    if (faturamentoReal !== null) {
-      stats.value.faturamento_total = faturamentoReal
-    }
-    
+    // Busca a lista completa de pedidos (com itens), pois /dashboard/resumo/ não traz
+    // os produtos de cada pedido. Usada tanto para recalcular o faturamento quanto
+    // para montar a tabela de Últimos Pedidos com os produtos visíveis.
+    const respostaPedidos = await api.get('/orders/', { params: { page_size: 1000 } })
+    const todosPedidos = respostaPedidos.data.results || respostaPedidos.data
+
+    // Faturamento Total = total do pedido (produtos + frete), somente de pedidos pagos
+    stats.value.faturamento_total = todosPedidos
+      .filter(pedido => STATUS_PAGOS.includes(String(pedido.status).toLowerCase()))
+      .reduce((total, pedido) => total + Number(pedido.total || 0), 0)
+
+    // Últimos Pedidos: os 5 mais recentes, com os produtos já prontos para exibição
+    recentOrders.value = [...todosPedidos]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 5)
+
   } catch (error) {
     console.error(error)
   } finally {
@@ -169,6 +185,7 @@ onMounted(() => {
               <thead>
                 <tr>
                   <th>Pedido</th>
+                  <th>Produtos</th>
                   <th>Cliente</th>
                   <th>Data</th>
                   <th>Status</th>
@@ -177,12 +194,17 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr v-if="recentOrders.length === 0">
-                  <td colspan="5" style="text-align: center;">Nenhum pedido encontrado.</td>
+                  <td colspan="6" style="text-align: center;">Nenhum pedido encontrado.</td>
                 </tr>
                 <tr v-for="order in recentOrders" :key="order.id">
                   <td><strong>#{{ order.id }}</strong></td>
-                  <td>{{ order.cliente_nome }}</td>
-                  <td>{{ formatDate(order.data_criacao) }}</td>
+                  <td>
+                    <div class="produtos-cell" :title="listaCompletaProdutos(order)">
+                      <span class="produtos-nome">{{ resumoProdutos(order) }}</span>
+                    </div>
+                  </td>
+                  <td>{{ order.customer_name || order.cliente_nome }}</td>
+                  <td>{{ formatDate(order.created_at || order.data_criacao) }}</td>
                   <td>
                     <span :class="['status-badge', getStatusClass(order.status)]">
                       {{ order.status_display || order.status }}
@@ -433,6 +455,22 @@ onMounted(() => {
 
 .font-bold { font-weight: 700; }
 .text-main { color: var(--text-main); }
+
+.produtos-cell {
+  display: flex;
+  flex-direction: column;
+  max-width: 220px;
+  cursor: help;
+}
+
+.produtos-nome {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .status-badge {
   padding: 0.25rem 0.75rem;
