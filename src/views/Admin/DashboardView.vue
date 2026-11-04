@@ -33,6 +33,29 @@ const getStatusClass = (status) => {
   return 'status-pending'
 }
 
+// Considera "pago" qualquer status que indique que a venda foi efetivada
+const STATUS_PAGOS = ['paid', 'pago', 'confirmed', 'shipped', 'enviado', 'delivered', 'entregue']
+
+// Soma apenas o valor dos produtos (sem frete) dos pedidos realmente pagos.
+// Necessário buscar /orders/ porque /dashboard/resumo/ não traz os itens de cada pedido.
+const fetchFaturamentoReal = async () => {
+  try {
+    const resposta = await api.get('/orders/', { params: { page_size: 1000 } })
+    const pedidos = resposta.data.results || resposta.data
+
+    return pedidos
+      .filter(pedido => STATUS_PAGOS.includes(String(pedido.status).toLowerCase()))
+      .reduce((totalGeral, pedido) => {
+        const itens = pedido.items || []
+        const subtotalPedido = itens.reduce((soma, item) => soma + Number(item.subtotal || 0), 0)
+        return totalGeral + subtotalPedido
+      }, 0)
+  } catch (error) {
+    console.error('Erro ao calcular faturamento real:', error)
+    return null
+  }
+}
+
 const fetchDashboardData = async () => {
   try {
     loading.value = true
@@ -41,6 +64,11 @@ const fetchDashboardData = async () => {
     stats.value = response.data.estatisticas || { faturamento_total: 0, pedidos_realizados: 0, novos_clientes: 0 }
     recentOrders.value = response.data.ultimos_pedidos || []
     topProducts.value = response.data.produtos_mais_vendidos || []
+
+    const faturamentoReal = await fetchFaturamentoReal()
+    if (faturamentoReal !== null) {
+      stats.value.faturamento_total = faturamentoReal
+    }
     
   } catch (error) {
     console.error(error)
