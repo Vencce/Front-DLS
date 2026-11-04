@@ -13,9 +13,9 @@ const googleReviews = {
   <footer class="main-footer">
     <div class="container footer-grid">
       <div class="footer-section brand-section">
-        <div class="brand-logo-footer">
-          <span class="logo-dls">DLS</span> <span class="logo-text">AUTO PEÇAS</span>
-        </div>
+        <router-link to="/" class="brand-logo-footer">
+          <img src="/assets/logo-CKOVm2g7.png" alt="DLS Auto Peças" class="footer-logo-image">
+        </router-link>
         <p>Especialistas em peças para linha Diesel. Qualidade, agilidade e performance para o seu veículo comercial.</p>
       </div>
 
@@ -177,6 +177,14 @@ const googleReviews = {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.footer-logo-image {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .logo-dls {
@@ -399,8 +407,8 @@ const googleReviews = {
   .brand-section {
     grid-column: span 2;
   }
-  .brand-logo-footer {
-    font-size: 1.5rem;
+  .footer-logo-image {
+    height: 32px;
   }
   .brand-section p {
     margin-top: 0.75rem;
@@ -459,8 +467,8 @@ const googleReviews = {
   .brand-section {
     grid-column: span 2;
   }
-  .brand-logo-footer {
-    font-size: 1.75rem;
+  .footer-logo-image {
+    height: 36px;
   }
   .brand-section p {
     margin-top: 1rem;
@@ -512,8 +520,8 @@ const googleReviews = {
   .brand-section {
     grid-column: span 2;
   }
-  .brand-logo-footer {
-    font-size: 2rem;
+  .footer-logo-image {
+    height: 42px;
   }
   .brand-section p {
     margin-top: 1.25rem;
@@ -562,8 +570,8 @@ const googleReviews = {
     grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
     gap: 2.5rem;
   }
-  .brand-logo-footer {
-    font-size: 2.1rem;
+  .footer-logo-image {
+    height: 46px;
   }
   .brand-section p {
     margin-top: 1.5rem;
@@ -617,8 +625,8 @@ const googleReviews = {
     grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
     gap: 3rem;
   }
-  .brand-logo-footer {
-    font-size: 2.25rem;
+  .footer-logo-image {
+    height: 50px;
   }
   .brand-section p {
     margin-top: 1.5rem;
