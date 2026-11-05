@@ -2,13 +2,59 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cartStore'
+import api from '../../services/api'
 
 const cartStore = useCartStore()
 const router = useRouter()
 const cep = ref('')
+const opcoesFrete = ref([])
+const loadingFrete = ref(false)
+const erroFrete = ref('')
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+const formatCep = () => {
+  let digits = cep.value.replace(/\D/g, '').slice(0, 8)
+  if (digits.length > 5) {
+    digits = `${digits.slice(0, 5)}-${digits.slice(5)}`
+  }
+  cep.value = digits
+  opcoesFrete.value = []
+  erroFrete.value = ''
+}
+
+const calcularFrete = async () => {
+  erroFrete.value = ''
+  opcoesFrete.value = []
+
+  const cleanCep = cep.value.replace(/\D/g, '')
+  if (cleanCep.length !== 8) {
+    erroFrete.value = 'Digite um CEP válido.'
+    return
+  }
+
+  if (!cartStore.items.length) {
+    erroFrete.value = 'Carrinho vazio.'
+    return
+  }
+
+  loadingFrete.value = true
+  try {
+    const { data } = await api.post('/orders/shipping/simulate/', {
+      zip_code: cleanCep,
+      items: cartStore.items.map(i => ({
+        product_id: i.id,
+        quantity: i.quantity,
+      })),
+    })
+    opcoesFrete.value = data
+  } catch (err) {
+    erroFrete.value = err.response?.data?.error || 'Não foi possível calcular o frete.'
+  } finally {
+    loadingFrete.value = false
+  }
 }
 
 const goToCheckout = () => {
@@ -94,10 +140,31 @@ const goToCatalog = () => {
         <div class="shipping-calc">
           <label>Calcular Frete</label>
           <div class="cep-input-row">
-            <input type="text" placeholder="00000-000" v-model="cep" maxlength="9">
-            <button class="btn-calc-cep">OK</button>
+            <input
+              type="text"
+              placeholder="00000-000"
+              v-model="cep"
+              @input="formatCep"
+              @keyup.enter="calcularFrete"
+              maxlength="9"
+              :disabled="loadingFrete"
+            >
+            <button class="btn-calc-cep" @click="calcularFrete" :disabled="loadingFrete">
+              {{ loadingFrete ? '...' : 'OK' }}
+            </button>
           </div>
-          <span class="shipping-promo">Frete Grátis acima de R$ 500,00</span>
+
+          <p v-if="erroFrete" class="frete-error">{{ erroFrete }}</p>
+
+          <div v-if="opcoesFrete.length" class="frete-options">
+            <div v-for="op in opcoesFrete" :key="op.service_id" class="frete-option-mini">
+              <span class="frete-nome">{{ op.service }}</span>
+              <span class="frete-prazo">{{ op.deadline_days }} dia(s) úteis</span>
+              <span class="frete-preco">{{ formatPrice(op.price) }}</span>
+            </div>
+          </div>
+
+          <span v-else-if="!erroFrete" class="shipping-promo">Frete Grátis acima de R$ 500,00</span>
         </div>
 
         <div class="summary-lines">
@@ -461,6 +528,51 @@ const goToCatalog = () => {
   font-weight: 700;
   font-size: 0.85rem;
   cursor: pointer;
+}
+
+.btn-calc-cep:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.frete-error {
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-weight: 600;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.frete-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.frete-option-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  padding: 0.4rem 0.5rem;
+  background-color: var(--bg-color, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 0.4rem;
+}
+
+.frete-nome {
+  font-weight: 700;
+  color: var(--text-main, #374151);
+}
+
+.frete-prazo {
+  color: var(--text-muted, #6b7280);
+  flex: 1;
+}
+
+.frete-preco {
+  font-weight: 800;
+  color: var(--primary-dark, #004d28);
 }
 
 .shipping-promo {
