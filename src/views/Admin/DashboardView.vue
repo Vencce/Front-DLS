@@ -27,9 +27,10 @@ const formatDate = (dateString) => {
 }
 
 const getStatusClass = (status) => {
-  const statusLower = String(status).toLowerCase()
-  if (statusLower.includes('pago') || statusLower.includes('concluido')) return 'status-paid'
-  if (statusLower.includes('enviado')) return 'status-shipped'
+  const s = String(status).toLowerCase()
+  if (s === 'paid' || s === 'pago' || s === 'confirmed') return 'status-paid'
+  if (s === 'shipped' || s === 'enviado') return 'status-shipped'
+  if (s === 'delivered' || s === 'entregue') return 'status-delivered'
   return 'status-pending'
 }
 
@@ -503,6 +504,7 @@ onMounted(() => {
 .status-paid { background-color: rgba(0, 168, 89, 0.15); color: var(--primary-light); }
 .status-pending { background-color: rgba(249, 115, 22, 0.15); color: #f97316; }
 .status-shipped { background-color: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.status-delivered { background-color: rgba(168, 85, 247, 0.15); color: #a855f7; }
 
 .top-list {
   padding: 0.5rem 1.5rem;
@@ -554,4 +556,5 @@ onMounted(() => {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
 </style>
