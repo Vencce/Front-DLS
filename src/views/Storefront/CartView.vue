@@ -49,9 +49,12 @@ const calcularFrete = async () => {
   isLoading.value = true
   try {
     const response = await api.post('/orders/shipping/simulate/', {
-      zip_code: cleanCep,
-      items: props.items
-    })
+    zip_code: cleanCep,
+    items: props.items.map(i => ({
+    product_id: i.id,
+    quantity: i.quantity || 1,
+  }))
+})
     options.value = response.data
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
