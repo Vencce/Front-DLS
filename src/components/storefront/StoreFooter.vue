@@ -1,5 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
+import logo from '../../assets/logo.png'
 
 // Dados da avaliação no Google — editar aqui se a nota/quantidade mudar
 const googleReviews = {
@@ -14,7 +15,7 @@ const googleReviews = {
     <div class="container footer-grid">
       <div class="footer-section brand-section">
         <router-link to="/" class="brand-logo-footer">
-          <img src="/assets/logo-CKOVm2g7.png" alt="DLS Auto Peças" class="footer-logo-image">
+          <img :src="logo" alt="DLS Auto Peças" class="footer-logo-image">
         </router-link>
         <p>Especialistas em peças para linha Diesel. Qualidade, agilidade e performance para o seu veículo comercial.</p>
       </div>
