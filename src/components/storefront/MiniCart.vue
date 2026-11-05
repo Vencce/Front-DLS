@@ -1,60 +1,12 @@
 <script setup>
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cartStore'
-import api from '../../services/api'
 
 const cartStore = useCartStore()
 const router = useRouter()
-const cep = ref('')
-const opcoesFrete = ref([])
-const loadingFrete = ref(false)
-const erroFrete = ref('')
 
 const formatPrice = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-const formatCep = () => {
-  let digits = cep.value.replace(/\D/g, '').slice(0, 8)
-  if (digits.length > 5) {
-    digits = `${digits.slice(0, 5)}-${digits.slice(5)}`
-  }
-  cep.value = digits
-  opcoesFrete.value = []
-  erroFrete.value = ''
-}
-
-const calcularFrete = async () => {
-  erroFrete.value = ''
-  opcoesFrete.value = []
-
-  const cleanCep = cep.value.replace(/\D/g, '')
-  if (cleanCep.length !== 8) {
-    erroFrete.value = 'Digite um CEP válido.'
-    return
-  }
-
-  if (!cartStore.items.length) {
-    erroFrete.value = 'Carrinho vazio.'
-    return
-  }
-
-  loadingFrete.value = true
-  try {
-    const { data } = await api.post('/orders/shipping/simulate/', {
-      zip_code: cleanCep,
-      items: cartStore.items.map(i => ({
-        product_id: i.id,
-        quantity: i.quantity,
-      })),
-    })
-    opcoesFrete.value = data
-  } catch (err) {
-    erroFrete.value = err.response?.data?.error || 'Não foi possível calcular o frete.'
-  } finally {
-    loadingFrete.value = false
-  }
 }
 
 const goToCheckout = () => {
@@ -97,7 +49,7 @@ const goToCatalog = () => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            
+
             <div class="item-details">
               <div class="item-header">
                 <div class="title-wrap">
@@ -123,9 +75,9 @@ const goToCatalog = () => {
                   <button class="qty-btn remove-state" @click="cartStore.removeItem(item.id)" v-else>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
-                  
+
                   <span class="qty-display">{{ item.quantity }}</span>
-                  
+
                   <button class="qty-btn" @click="cartStore.updateQuantity(item.id, item.quantity + 1)">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
                   </button>
@@ -137,35 +89,7 @@ const goToCatalog = () => {
       </div>
 
       <div class="minicart-footer" v-if="cartStore.items.length > 0">
-        <div class="shipping-calc">
-          <label>Calcular Frete</label>
-          <div class="cep-input-row">
-            <input
-              type="text"
-              placeholder="00000-000"
-              v-model="cep"
-              @input="formatCep"
-              @keyup.enter="calcularFrete"
-              maxlength="9"
-              :disabled="loadingFrete"
-            >
-            <button class="btn-calc-cep" @click="calcularFrete" :disabled="loadingFrete">
-              {{ loadingFrete ? '...' : 'OK' }}
-            </button>
-          </div>
-
-          <p v-if="erroFrete" class="frete-error">{{ erroFrete }}</p>
-
-          <div v-if="opcoesFrete.length" class="frete-options">
-            <div v-for="op in opcoesFrete" :key="op.service_id" class="frete-option-mini">
-              <span class="frete-nome">{{ op.service }}</span>
-              <span class="frete-prazo">{{ op.deadline_days }} dia(s) úteis</span>
-              <span class="frete-preco">{{ formatPrice(op.price) }}</span>
-            </div>
-          </div>
-
-          <span v-else-if="!erroFrete" class="shipping-promo">Frete Grátis acima de R$ 500,00</span>
-        </div>
+        <p class="shipping-note">O frete é calculado na próxima etapa, ao informar seu CEP.</p>
 
         <div class="summary-lines">
           <div class="line">
@@ -485,100 +409,10 @@ const goToCatalog = () => {
   box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.03);
 }
 
-.shipping-calc {
-  margin-bottom: 1.25rem;
-}
-
-.shipping-calc label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-main, #374151);
-  margin-bottom: 0.4rem;
-}
-
-.cep-input-row {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.4rem;
-}
-
-.cep-input-row input {
-  flex-grow: 1;
-  padding: 0.6rem 0.75rem;
-  background-color: var(--bg-color, #f9fafb);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 0.5rem;
-  font-size: 0.85rem;
-  outline: none;
-  color: var(--text-main, #374151);
-  transition: border-color 0.2s;
-}
-
-.cep-input-row input:focus {
-  border-color: var(--primary-light, #008f4c);
-}
-
-.btn-calc-cep {
-  background-color: var(--surface-hover, #f3f4f6);
-  color: var(--text-main, #374151);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 0.5rem;
-  padding: 0 1rem;
-  font-weight: 700;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.btn-calc-cep:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.frete-error {
-  font-size: 0.75rem;
-  color: #ef4444;
-  font-weight: 600;
-  margin: 0.2rem 0 0.4rem;
-}
-
-.frete-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 0.4rem;
-}
-
-.frete-option-mini {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.shipping-note {
   font-size: 0.78rem;
-  padding: 0.4rem 0.5rem;
-  background-color: var(--bg-color, #f9fafb);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 0.4rem;
-}
-
-.frete-nome {
-  font-weight: 700;
-  color: var(--text-main, #374151);
-}
-
-.frete-prazo {
   color: var(--text-muted, #6b7280);
-  flex: 1;
-}
-
-.frete-preco {
-  font-weight: 800;
-  color: var(--primary-dark, #004d28);
-}
-
-.shipping-promo {
-  font-size: 0.75rem;
-  color: var(--primary-light, #008f4c);
-  font-weight: 600;
+  margin: 0 0 1rem;
 }
 
 .summary-lines {
