@@ -72,7 +72,6 @@
               <td class="price-cell">{{ formatarPreco(pedido.total) }}</td>
               <td>
                 <button class="btn-action" @click="abrirDetalhes(pedido)">Gerenciar</button>
-                <button class="btn-action btn-delete" @click="excluirPedido(pedido)">Excluir</button>
               </td>
             </tr>
           </tbody>
@@ -221,24 +220,6 @@ const abrirDetalhes = (pedido) => {
 const fecharDetalhes = () => {
   mostrarDetalhes.value = false
   pedidoSelecionado.value = null
-}
-
-const excluirPedido = async (pedido) => {
-  const confirmado = window.confirm(
-    `Excluir o pedido #${pedido.id} definitivamente? Essa ação não pode ser desfeita e remove o pedido do histórico e do faturamento.`
-  )
-  if (!confirmado) return
-
-  try {
-    await api.delete(`/orders/${pedido.id}/`)
-    pedidos.value = pedidos.value.filter(p => p.id !== pedido.id)
-    if (pedidoSelecionado.value?.id === pedido.id) {
-      fecharDetalhes()
-    }
-  } catch (erro) {
-    console.error(erro)
-    alert('Não foi possível excluir o pedido.')
-  }
 }
 
 const buscarPedidos = async () => {
@@ -524,22 +505,11 @@ onMounted(() => {
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-right: 0.5rem;
-}
-
-.btn-action:last-child {
-  margin-right: 0;
 }
 
 .btn-action:hover {
   background-color: var(--primary-light);
   border-color: var(--primary-light);
-  color: #ffffff;
-}
-
-.btn-delete:hover {
-  background-color: #ef4444;
-  border-color: #ef4444;
   color: #ffffff;
 }
 
