@@ -70,8 +70,9 @@
                 </span>
               </td>
               <td class="price-cell">{{ formatarPreco(pedido.total) }}</td>
-              <td>
+              <td class="actions-cell">
                 <button class="btn-action" @click="abrirDetalhes(pedido)">Gerenciar</button>
+                <button class="btn-action btn-delete" @click="excluirPedido(pedido)">Excluir</button>
               </td>
             </tr>
           </tbody>
@@ -174,13 +175,12 @@ const formatarPreco = (valor) => {
 const formatarData = (stringData) => {
   if (!stringData) return ''
   const data = new Date(stringData)
-  if (isNaN(data.getTime())) return stringData 
+  if (isNaN(data.getTime())) return stringData
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
   }).format(data)
 }
 
-// Os dados de product_name vêm em minúsculas da API; isto só ajusta a exibição
 const nomeProduto = (nome) => {
   if (!nome) return 'Produto'
   return nome.charAt(0).toUpperCase() + nome.slice(1)
@@ -206,7 +206,6 @@ const resumoProdutos = (pedido) => {
   return texto
 }
 
-// Usado no title do <td> para mostrar a lista completa ao passar o mouse
 const listaCompletaProdutos = (pedido) => {
   const items = pedido.items || []
   return items.map(item => `${item.quantity}x ${nomeProduto(item.product_name)}`).join('\n')
@@ -220,6 +219,24 @@ const abrirDetalhes = (pedido) => {
 const fecharDetalhes = () => {
   mostrarDetalhes.value = false
   pedidoSelecionado.value = null
+}
+
+const excluirPedido = async (pedido) => {
+  const confirmado = window.confirm(
+    `Excluir o pedido #${pedido.id} definitivamente? Essa ação não pode ser desfeita.`
+  )
+  if (!confirmado) return
+
+  try {
+    await api.delete(`/orders/${pedido.id}/`)
+    pedidos.value = pedidos.value.filter((p) => p.id !== pedido.id)
+    if (pedidoSelecionado.value && pedidoSelecionado.value.id === pedido.id) {
+      fecharDetalhes()
+    }
+  } catch (erro) {
+    console.error(erro)
+    alert('Não foi possível excluir o pedido.')
+  }
 }
 
 const buscarPedidos = async () => {
@@ -239,7 +256,7 @@ const pedidosFiltrados = computed(() => {
 
   if (busca.value) {
     const q = busca.value.toLowerCase()
-    resultado = resultado.filter(p => {
+    resultado = resultado.filter((p) => {
       const idMatch = String(p.id).toLowerCase().includes(q)
       const nomeMatch = (p.customer_name || p.cliente_nome || '').toLowerCase().includes(q)
       return idMatch || nomeMatch
@@ -247,13 +264,15 @@ const pedidosFiltrados = computed(() => {
   }
 
   if (filtroStatus.value) {
-    resultado = resultado.filter(p => {
+    resultado = resultado.filter((p) => {
       const s = String(p.status).toLowerCase()
-      return s === filtroStatus.value.toLowerCase() || 
-             (filtroStatus.value === 'paid' && (s === 'pago' || s === 'confirmed' || s === 'paid')) ||
-             (filtroStatus.value === 'pending' && (s === 'pendente' || s === 'aguardando' || s === 'pending')) ||
-             (filtroStatus.value === 'shipped' && (s === 'enviado' || s === 'shipped')) ||
-             (filtroStatus.value === 'delivered' && (s === 'entregue' || s === 'delivered'))
+      return (
+        s === filtroStatus.value.toLowerCase() ||
+        (filtroStatus.value === 'paid' && (s === 'pago' || s === 'confirmed' || s === 'paid')) ||
+        (filtroStatus.value === 'pending' && (s === 'pendente' || s === 'aguardando' || s === 'pending')) ||
+        (filtroStatus.value === 'shipped' && (s === 'enviado' || s === 'shipped')) ||
+        (filtroStatus.value === 'delivered' && (s === 'entregue' || s === 'delivered'))
+      )
     })
   }
 
@@ -495,6 +514,11 @@ onMounted(() => {
   color: var(--primary-dark);
 }
 
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .btn-action {
   background-color: var(--surface-hover);
   border: 1px solid var(--border-color);
@@ -510,6 +534,12 @@ onMounted(() => {
 .btn-action:hover {
   background-color: var(--primary-light);
   border-color: var(--primary-light);
+  color: #ffffff;
+}
+
+.btn-delete:hover {
+  background-color: #ef4444;
+  border-color: #ef4444;
   color: #ffffff;
 }
 
