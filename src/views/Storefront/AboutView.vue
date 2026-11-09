@@ -1,7 +1,21 @@
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import lojaFachada from '../../assets/loja1.jpg'
+import lojaInterior from '../../assets/loja2.jpg'
+import lojaEstoque from '../../assets/loja3.jpg'
+
 const router = useRouter()
+
+// Fotos da loja — para trocar, substitua os arquivos em src/assets/
+const fotosLoja = [
+  { src: lojaFachada, alt: 'Fachada da DLS Auto Peças na Rua São Paulo, 3339, em Joinville' },
+  { src: lojaInterior, alt: 'Interior da loja com balcão de atendimento, motores e pneus' },
+  { src: lojaEstoque, alt: 'Prateleiras do estoque com cabeçotes e peças de motor diesel' },
+]
+
+const fotoAtiva = ref(0)
 </script>
 
 <template>
@@ -48,9 +62,31 @@ const router = useRouter()
         </div>
         
         <div class="story-image">
-          <div class="image-placeholder">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-            <span>Nossa Estrutura</span>
+          <div class="store-gallery">
+            <div class="gallery-main">
+              <img
+                :src="fotosLoja[fotoAtiva].src"
+                :alt="fotosLoja[fotoAtiva].alt"
+                width="1200"
+                height="1600"
+              />
+            </div>
+
+            <div class="gallery-thumbs">
+              <button
+                v-for="(foto, index) in fotosLoja"
+                :key="index"
+                type="button"
+                class="thumb-btn"
+                :class="{ active: fotoAtiva === index }"
+                :aria-label="`Ver foto ${index + 1}: ${foto.alt}`"
+                @click="fotoAtiva = index"
+              >
+                <img :src="foto.src" :alt="foto.alt" loading="lazy" width="400" height="400" />
+              </button>
+            </div>
+
+            <span class="gallery-caption">Nossa estrutura em Joinville - SC</span>
           </div>
         </div>
       </div>
@@ -224,21 +260,69 @@ const router = useRouter()
   height: 100%;
 }
 
-.image-placeholder {
-  width: 100%;
-  height: 100%;
-  background-color: var(--surface-hover);
-  border: 2px dashed var(--border-color);
-  border-radius: 1rem;
+/* Galeria de fotos da loja */
+.store-gallery {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
+  gap: 0.75rem;
+  height: 100%;
 }
 
-.image-placeholder span {
+.gallery-main {
+  flex: 1;
+  background-color: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.gallery-main img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.thumb-btn {
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  border: 2px solid var(--border-color);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.thumb-btn:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-2px);
+}
+
+.thumb-btn.active {
+  border-color: var(--primary-light);
+}
+
+.thumb-btn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-caption {
+  color: var(--text-muted);
+  font-size: 0.85rem;
   font-weight: 600;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .contact-section {
@@ -403,16 +487,12 @@ const router = useRouter()
     font-size: 0.95rem;
     line-height: 1.6;
   }
-  .image-placeholder {
-    min-height: 300px;
-    gap: 1rem;
+  .gallery-main {
+    min-height: 280px;
+    max-height: 340px;
   }
-  .image-placeholder svg {
-    width: 3.5rem;
-    height: 3.5rem;
-  }
-  .image-placeholder span {
-    font-size: 1.1rem;
+  .gallery-caption {
+    font-size: 0.8rem;
   }
   .contact-section {
     grid-template-columns: 1fr;
@@ -531,16 +611,9 @@ const router = useRouter()
     font-size: 0.95rem;
     line-height: 1.6;
   }
-  .image-placeholder {
-    min-height: 350px;
-    gap: 1.25rem;
-  }
-  .image-placeholder svg {
-    width: 4rem;
-    height: 4rem;
-  }
-  .image-placeholder span {
-    font-size: 1.15rem;
+  .gallery-main {
+    min-height: 340px;
+    max-height: 420px;
   }
   .contact-section {
     grid-template-columns: 1fr;
@@ -662,16 +735,9 @@ const router = useRouter()
     font-size: 0.95rem;
     line-height: 1.6;
   }
-  .image-placeholder {
-    min-height: 400px;
-    gap: 1.5rem;
-  }
-  .image-placeholder svg {
-    width: 4.5rem;
-    height: 4.5rem;
-  }
-  .image-placeholder span {
-    font-size: 1.25rem;
+  .gallery-main {
+    min-height: 420px;
+    max-height: 500px;
   }
   .contact-section {
     grid-template-columns: 1fr;
@@ -793,16 +859,8 @@ const router = useRouter()
     font-size: 1rem;
     line-height: 1.6;
   }
-  .image-placeholder {
-    min-height: 100%;
-    gap: 1.5rem;
-  }
-  .image-placeholder svg {
-    width: 4.5rem;
-    height: 4.5rem;
-  }
-  .image-placeholder span {
-    font-size: 1.25rem;
+  .gallery-main {
+    min-height: 420px;
   }
   .contact-section {
     grid-template-columns: 1fr 1fr;
@@ -924,16 +982,11 @@ const router = useRouter()
     font-size: 1rem;
     line-height: 1.6;
   }
-  .image-placeholder {
-    min-height: 100%;
-    gap: 1.5rem;
+  .gallery-main {
+    min-height: 480px;
   }
-  .image-placeholder svg {
-    width: 5rem;
-    height: 5rem;
-  }
-  .image-placeholder span {
-    font-size: 1.35rem;
+  .gallery-thumbs {
+    gap: 1rem;
   }
   .contact-section {
     grid-template-columns: 1fr 1fr;
