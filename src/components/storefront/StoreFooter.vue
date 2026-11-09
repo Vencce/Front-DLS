@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-import logo from '../../assets/logoicon-d2iG9V0B.png'
+import logo from '../../assets/logo.png'
 
 // Dados da avaliação no Google — editar aqui se a nota/quantidade mudar
 const googleReviews = {
