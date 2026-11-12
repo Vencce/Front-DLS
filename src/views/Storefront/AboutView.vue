@@ -112,7 +112,7 @@ const fotoAtiva = ref(0)
               </div>
               <div class="contact-detail">
                 <strong>E-mail</strong>
-                <a href="mailto:contato@dlsautopecas.com.br" class="contact-link">contato@dlsautopecas.com.br</a>
+                <a href="mailto:comerciodlsautopeca@gmail.com" class="contact-link">comerciodlsautopeca@gmail.com</a>
               </div>
             </li>
             <li>

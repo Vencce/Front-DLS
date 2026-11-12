@@ -45,11 +45,11 @@ const googleReviews = {
 
       <div class="footer-section">
         <h4>Contato</h4>
-        <a class="contact-email" href="mailto:comerciodlsautopecas@gmail.com">
+        <a class="contact-email" href="mailto:comerciodlsautopeca@gmail.com">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l9 6 9-6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
-          <span>comerciodlsautopecas@gmail.com</span>
+          <span>comerciodlsautopeca@gmail.com</span>
         </a>
 
         <div class="social-links">
